@@ -23,7 +23,7 @@
 //! ```
 
 use com_api::*;
-use com_api_runtime_iceoryx::{RuntimeImpl, SampleConsumerBuilder, SampleProducerBuilder};
+use com_api_runtime_iceoryx::{IceoryxAdapter, IceoryxConsumerBuilder, IceoryxProducerBuilder, IceoryxPublisher, IceoryxSubscribable};
 
 #[derive(Debug)]
 pub struct Tire {}
@@ -35,15 +35,15 @@ unsafe impl Reloc for Exhaust {}
 pub struct VehicleInterface {}
 
 /// Generic
-impl Interface for VehicleInterface {}
+impl InterfaceConcept for VehicleInterface {}
 
 pub struct AnotherInterface {}
 
-impl Interface for AnotherInterface {}
+impl InterfaceConcept for AnotherInterface {}
 
 pub struct VehicleProducer {}
 
-impl Producer for VehicleProducer {
+impl ProducerConcept for VehicleProducer {
     type Interface = VehicleInterface;
     type OfferedProducer = VehicleOfferedProducer;
 
@@ -53,11 +53,11 @@ impl Producer for VehicleProducer {
 }
 
 pub struct VehicleOfferedProducer {
-    pub left_tire: com_api_runtime_iceoryx::Publisher<Tire>,
-    pub exhaust: com_api_runtime_iceoryx::Publisher<Exhaust>,
+    pub left_tire: IceoryxPublisher<Tire>,
+    pub exhaust: IceoryxPublisher<Exhaust>,
 }
 
-impl OfferedProducer for VehicleOfferedProducer {
+impl OfferedProducerConcept for VehicleOfferedProducer {
     type Interface = VehicleInterface;
     type Producer = VehicleProducer;
 
@@ -66,27 +66,27 @@ impl OfferedProducer for VehicleOfferedProducer {
     }
 }
 
-impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
+impl BuilderConcept<VehicleProducer> for IceoryxProducerBuilder<VehicleInterface> {
     fn build(self) -> com_api::Result<VehicleProducer> {
         todo!()
     }
 }
 
-impl ProducerBuilder<VehicleInterface, RuntimeImpl, VehicleProducer>
-    for SampleProducerBuilder<VehicleInterface>
+impl ProducerBuilderConcept<VehicleInterface, IceoryxAdapter, VehicleProducer>
+    for IceoryxProducerBuilder<VehicleInterface>
 {
 }
 
 pub struct VehicleConsumer {
-    pub left_tire: com_api_runtime_iceoryx::SubscribableImpl<Tire>,
-    pub exhaust: com_api_runtime_iceoryx::SubscribableImpl<Exhaust>,
+    pub left_tire: IceoryxSubscribable<Tire>,
+    pub exhaust: IceoryxSubscribable<Exhaust>,
 }
 
-impl Consumer for VehicleConsumer {}
+impl ConsumerConcept for VehicleConsumer {}
 
-impl ConsumerBuilder<VehicleInterface, RuntimeImpl> for SampleConsumerBuilder<VehicleInterface> {}
+impl ConsumerBuilderConcept<VehicleInterface, IceoryxAdapter> for IceoryxConsumerBuilder<VehicleInterface> {}
 
-impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
+impl BuilderConcept<VehicleConsumer> for IceoryxConsumerBuilder<VehicleInterface> {
     fn build(self) -> com_api::Result<VehicleConsumer> {
         todo!()
     }

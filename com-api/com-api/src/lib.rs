@@ -13,12 +13,25 @@
 compile_error!("You must enable at least one feature: `iceoryx` or `lola`!");
 
 #[cfg(feature = "iceoryx")]
-pub use com_api_runtime_iceoryx::RuntimeBuilderImpl;
+pub type AdapterBuilder = com_api_runtime_iceoryx::IceoryxAdapterBuilder;
+#[cfg(feature = "iceoryx")]
+pub type Adapter = com_api_runtime_iceoryx::IceoryxAdapter;
+#[cfg(feature = "iceoryx")]
+pub type ConsumerBuilder = com_api_runtime_iceoryx::IceoryxConsumerBuilder<Adapter>;
+#[cfg(feature = "iceoryx")]
+pub type Subscriber = com_api_runtime_iceoryx::IceoryxSubscriber<Adapter>;
+
 #[cfg(feature = "lola")]
-pub use com_api_runtime_lola::RuntimeBuilderImpl;
+pub type AdapterBuilder = com_api_runtime_lola::LolaAdapterBuilder;
+#[cfg(feature = "lola")]
+pub type Adapter = com_api_runtime_lola::LolaAdapter;
+#[cfg(feature = "lola")]
+pub type ConsumerBuilder = com_api_runtime_lola::LolaConsumerBuilder<Adapter>;
+#[cfg(feature = "lola")]
+pub type Subscriber = com_api_runtime_lola::LolaSubscriber<Adapter>;
 
 pub use com_api_concept::{
-    Builder, Consumer, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface,
-    OfferedProducer, Producer, ProducerBuilder, Reloc, Result, SampleContainer, SampleMaybeUninit,
-    SampleMut, ServiceDiscovery, Subscriber, Subscription,
+    BuilderConcept, ConsumerConcept, ConsumerBuilderConcept, ConsumerDescriptorConcept, InstanceSpecifier, InterfaceConcept,
+    OfferedProducerConcept, ProducerConcept, ProducerBuilderConcept, Reloc, Result, SampleContainer, SampleMaybeUninitConcept, SampleConcept,
+    SampleMutConcept, ServiceDiscoveryConcept, SubscriberConcept, SubscriptionConcept,
 };

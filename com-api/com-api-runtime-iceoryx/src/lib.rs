@@ -20,33 +20,33 @@ use std::path::Path;
 use std::sync::atomic::AtomicUsize;
 
 use com_api_concept::{
-    Builder, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface, Reloc, Runtime,
-    SampleContainer, ServiceDiscovery, Subscriber, Subscription,
+    BuilderConcept, ConsumerBuilderConcept, ConsumerDescriptorConcept, InstanceSpecifier, InterfaceConcept, Reloc, AdapterConcept,
+    SampleContainer, ServiceDiscoveryConcept, SubscriberConcept, SubscriptionConcept, SampleMaybeUninitConcept, SampleConcept, SampleMutConcept
 };
 
-pub struct RuntimeImpl {}
+pub struct IceoryxAdapter {}
 
-impl Runtime for RuntimeImpl {
-    type Sample<'a, T: Reloc + Send + 'a + std::fmt::Debug> = Sample<'a, T>;
+impl AdapterConcept for IceoryxAdapter {
+    type Sample<'a, T: Reloc + Send + 'a + std::fmt::Debug> = IceoryxSample<'a, T>;
 }
 
-impl RuntimeImpl {
+impl IceoryxAdapter {
     // TODO: Any chance that these can be moved to a trait so that this becomes more testable?
     // If yes, this trait is certainly located here since
-    pub fn find_service<I: Interface>(
+    pub fn find_service<I: InterfaceConcept>(
         &self,
         _instance_specifier: InstanceSpecifier,
-    ) -> SampleConsumerDiscovery<I> {
-        SampleConsumerDiscovery {
+    ) -> IceoryxConsumerDiscovery<I> {
+        IceoryxConsumerDiscovery {
             _interface: PhantomData,
         }
     }
 
-    pub fn producer_builder<I: Interface>(
+    pub fn producer_builder<I: InterfaceConcept>(
         &self,
         instance_specifier: InstanceSpecifier,
-    ) -> SampleProducerBuilder<I> {
-        SampleProducerBuilder::new(self, instance_specifier)
+    ) -> IceoryxProducerBuilder<I> {
+        IceoryxProducerBuilder::new(self, instance_specifier)
     }
 }
 
@@ -72,7 +72,7 @@ where
     Test(Box<T>),
 }
 
-pub struct Sample<'a, T>
+pub struct IceoryxSample<'a, T>
 where
     T: Reloc + Send,
 {
@@ -82,7 +82,7 @@ where
 
 static ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-impl<'a, T> From<T> for Sample<'a, T>
+impl<'a, T> From<T> for IceoryxSample<'a, T>
 where
     T: Reloc + Send,
 {
@@ -94,7 +94,7 @@ where
     }
 }
 
-impl<'a, T> Deref for Sample<'a, T>
+impl<'a, T> Deref for IceoryxSample<'a, T>
 where
     T: Reloc + Send,
 {
@@ -108,9 +108,9 @@ where
     }
 }
 
-impl<'a, T> com_api_concept::Sample<T> for Sample<'a, T> where T: Send + Reloc {}
+impl<'a, T> SampleConcept<T> for IceoryxSample<'a, T> where T: Send + Reloc {}
 
-impl<'a, T> PartialEq for Sample<'a, T>
+impl<'a, T> PartialEq for IceoryxSample<'a, T>
 where
     T: Send + Reloc,
 {
@@ -119,9 +119,9 @@ where
     }
 }
 
-impl<'a, T> Eq for Sample<'a, T> where T: Send + Reloc {}
+impl<'a, T> Eq for IceoryxSample<'a, T> where T: Send + Reloc {}
 
-impl<'a, T> PartialOrd for Sample<'a, T>
+impl<'a, T> PartialOrd for IceoryxSample<'a, T>
 where
     T: Send + Reloc,
 {
@@ -130,7 +130,7 @@ where
     }
 }
 
-impl<'a, T> Ord for Sample<'a, T>
+impl<'a, T> Ord for IceoryxSample<'a, T>
 where
     T: Send + Reloc,
 {
@@ -139,7 +139,7 @@ where
     }
 }
 
-pub struct SampleMut<'a, T>
+pub struct IceoryxSampleMut<'a, T>
 where
     T: Reloc,
 {
@@ -147,11 +147,11 @@ where
     _lifetime: PhantomData<&'a T>,
 }
 
-impl<'a, T> com_api_concept::SampleMut<T> for SampleMut<'a, T>
+impl<'a, T> SampleMutConcept<T> for IceoryxSampleMut<'a, T>
 where
     T: Reloc + Send,
 {
-    type Sample = Sample<'a, T>;
+    type Sample = IceoryxSample<'a, T>;
 
     fn into_sample(self) -> Self::Sample {
         todo!()
@@ -162,7 +162,7 @@ where
     }
 }
 
-impl<'a, T> Deref for SampleMut<'a, T>
+impl<'a, T> Deref for IceoryxSampleMut<'a, T>
 where
     T: Reloc,
 {
@@ -173,7 +173,7 @@ where
     }
 }
 
-impl<'a, T> DerefMut for SampleMut<'a, T>
+impl<'a, T> DerefMut for IceoryxSampleMut<'a, T>
 where
     T: Reloc,
 {
@@ -182,7 +182,7 @@ where
     }
 }
 
-pub struct SampleMaybeUninit<'a, T>
+pub struct IceoryxSampleMaybeUninit<'a, T>
 where
     T: Reloc + Send,
 {
@@ -190,47 +190,47 @@ where
     _lifetime: PhantomData<&'a T>,
 }
 
-impl<'a, T> com_api_concept::SampleMaybeUninit<T> for SampleMaybeUninit<'a, T>
+impl<'a, T> SampleMaybeUninitConcept<T> for IceoryxSampleMaybeUninit<'a, T>
 where
     T: Reloc + Send,
 {
-    type SampleMut = SampleMut<'a, T>;
+    type SampleMut = IceoryxSampleMut<'a, T>;
 
-    fn write(self, val: T) -> SampleMut<'a, T> {
-        SampleMut {
+    fn write(self, val: T) -> IceoryxSampleMut<'a, T> {
+        IceoryxSampleMut {
             data: val,
             _lifetime: PhantomData,
         }
     }
 }
 
-pub struct SubscribableImpl<T> {
+pub struct IceoryxSubscribable<T> {
     _data: PhantomData<T>,
 }
 
-impl<T> Default for SubscribableImpl<T> {
+impl<T> Default for IceoryxSubscribable<T> {
     fn default() -> Self {
         Self { _data: PhantomData }
     }
 }
 
-impl<T: Reloc + Send> Subscriber<T> for SubscribableImpl<T> {
-    type Subscription = SubscriberImpl<T>;
+impl<T: Reloc + Send> SubscriberConcept<T> for IceoryxSubscribable<T> {
+    type Subscription = IceoryxSubscriber<T>;
 
     fn subscribe(self, _max_num_samples: usize) -> com_api_concept::Result<Self::Subscription> {
-        Ok(SubscriberImpl::new())
+        Ok(IceoryxSubscriber::new())
     }
 }
 
 #[derive(Default)]
-pub struct SubscriberImpl<T>
+pub struct IceoryxSubscriber<T>
 where
     T: Reloc + Send,
 {
     data: VecDeque<T>,
 }
 
-impl<T> SubscriberImpl<T>
+impl<T> IceoryxSubscriber<T>
 where
     T: Reloc + Send,
 {
@@ -245,13 +245,13 @@ where
     }
 }
 
-impl<T> Subscription<T> for SubscriberImpl<T>
+impl<T> SubscriptionConcept<T> for IceoryxSubscriber<T>
 where
     T: Reloc + Send,
 {
-    type Subscriber = SubscribableImpl<T>;
+    type Subscriber = IceoryxSubscribable<T>;
     type Sample<'a>
-        = Sample<'a, T>
+        = IceoryxSample<'a, T>
     where
         T: 'a;
 
@@ -278,11 +278,11 @@ where
     }
 }
 
-pub struct Publisher<T> {
+pub struct IceoryxPublisher<T> {
     _data: PhantomData<T>,
 }
 
-impl<T> Default for Publisher<T>
+impl<T> Default for IceoryxPublisher<T>
 where
     T: Reloc + Send,
 {
@@ -291,7 +291,7 @@ where
     }
 }
 
-impl<T> Publisher<T>
+impl<T> IceoryxPublisher<T>
 where
     T: Reloc + Send,
 {
@@ -299,45 +299,45 @@ where
         Self { _data: PhantomData }
     }
 
-    pub fn allocate<'a>(&'a self) -> com_api_concept::Result<SampleMaybeUninit<'a, T>> {
-        Ok(SampleMaybeUninit {
+    pub fn allocate<'a>(&'a self) -> com_api_concept::Result<IceoryxSampleMaybeUninit<'a, T>> {
+        Ok(IceoryxSampleMaybeUninit {
             data: MaybeUninit::uninit(),
             _lifetime: PhantomData,
         })
     }
 }
 
-pub struct SampleConsumerDiscovery<I> {
+pub struct IceoryxConsumerDiscovery<I> {
     _interface: PhantomData<I>,
 }
 
-impl<I> SampleConsumerDiscovery<I> {
-    fn new(_runtime: &RuntimeImpl, _instance_specifier: InstanceSpecifier) -> Self {
+impl<I> IceoryxConsumerDiscovery<I> {
+    fn new(_runtime: &IceoryxAdapter, _instance_specifier: InstanceSpecifier) -> Self {
         Self {
             _interface: PhantomData,
         }
     }
 }
 
-impl<I: Interface> ServiceDiscovery<I, RuntimeImpl> for SampleConsumerDiscovery<I>
+impl<I: InterfaceConcept> ServiceDiscoveryConcept<I, IceoryxAdapter> for IceoryxConsumerDiscovery<I>
 where
-    SampleConsumerBuilder<I>: ConsumerBuilder<I, RuntimeImpl>,
+    IceoryxConsumerBuilder<I>: ConsumerBuilderConcept<I, IceoryxAdapter>,
 {
-    type ConsumerBuilder = SampleConsumerBuilder<I>;
-    type ServiceEnumerator = Vec<SampleConsumerBuilder<I>>;
+    type ConsumerBuilder = IceoryxConsumerBuilder<I>;
+    type ServiceEnumerator = Vec<IceoryxConsumerBuilder<I>>;
 
     fn get_available_instances(&self) -> com_api_concept::Result<Self::ServiceEnumerator> {
         Ok(Vec::new())
     }
 }
 
-pub struct SampleProducerBuilder<I: Interface> {
+pub struct IceoryxProducerBuilder<I: InterfaceConcept> {
     instance_specifier: InstanceSpecifier,
     _interface: PhantomData<I>,
 }
 
-impl<I: Interface> SampleProducerBuilder<I> {
-    fn new(_runtime: &RuntimeImpl, instance_specifier: InstanceSpecifier) -> Self {
+impl<I: InterfaceConcept> IceoryxProducerBuilder<I> {
+    fn new(_runtime: &IceoryxAdapter, instance_specifier: InstanceSpecifier) -> Self {
         Self {
             instance_specifier,
             _interface: PhantomData,
@@ -345,11 +345,11 @@ impl<I: Interface> SampleProducerBuilder<I> {
     }
 }
 
-pub struct SampleConsumerDescriptor<I: Interface> {
+pub struct IceoryxConsumerDescriptor<I: InterfaceConcept> {
     _interface: PhantomData<I>,
 }
 
-impl<I: Interface> Clone for SampleConsumerDescriptor<I> {
+impl<I: InterfaceConcept> Clone for IceoryxConsumerDescriptor<I> {
     fn clone(&self) -> Self {
         Self {
             _interface: PhantomData,
@@ -357,39 +357,39 @@ impl<I: Interface> Clone for SampleConsumerDescriptor<I> {
     }
 }
 
-pub struct SampleConsumerBuilder<I: Interface> {
+pub struct IceoryxConsumerBuilder<I: InterfaceConcept> {
     instance_specifier: InstanceSpecifier,
     _interface: PhantomData<I>,
 }
 
-impl<I: Interface> ConsumerDescriptor<RuntimeImpl> for SampleConsumerBuilder<I> {
+impl<I: InterfaceConcept> ConsumerDescriptorConcept<IceoryxAdapter> for IceoryxConsumerBuilder<I> {
     fn get_instance_id(&self) -> usize {
         todo!()
     }
 }
 
-pub struct RuntimeBuilderImpl {}
+pub struct IceoryxAdapterBuilder {}
 
-impl Builder<RuntimeImpl> for RuntimeBuilderImpl {
-    fn build(self) -> com_api_concept::Result<RuntimeImpl> {
-        Ok(RuntimeImpl {})
+impl BuilderConcept<IceoryxAdapter> for IceoryxAdapterBuilder {
+    fn build(self) -> com_api_concept::Result<IceoryxAdapter> {
+        Ok(IceoryxAdapter {})
     }
 }
 
 /// Entry point for the default implementation for the com module of s-core
-impl com_api_concept::RuntimeBuilder<RuntimeImpl> for RuntimeBuilderImpl {
+impl com_api_concept::AdapterBuilderConcept<IceoryxAdapter> for IceoryxAdapterBuilder {
     fn load_config(&mut self, _config: &Path) -> &mut Self {
         self
     }
 }
 
-impl Default for RuntimeBuilderImpl {
+impl Default for IceoryxAdapterBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RuntimeBuilderImpl {
+impl IceoryxAdapterBuilder {
     /// Creates a new instance of the default implementation of the com layer
     pub fn new() -> Self {
         Self {}
@@ -398,11 +398,11 @@ impl RuntimeBuilderImpl {
 
 #[cfg(test)]
 mod test {
-    use com_api_concept::{SampleContainer, Subscription};
+    use com_api_concept::{SampleContainer, SubscriptionConcept};
 
     #[test]
     fn receive_stuff() {
-        let test_subscriber = super::SubscriberImpl::<u32>::new();
+        let test_subscriber = super::IceoryxSubscriber::<u32>::new();
         for _ in 0..10 {
             let mut sample_buf = SampleContainer::new();
             let receive_result = test_subscriber.try_receive(&mut sample_buf, 1);
@@ -422,7 +422,7 @@ mod test {
 
     #[test]
     fn receive_async_stuff() {
-        let test_subscriber = super::SubscriberImpl::<u32>::new();
+        let test_subscriber = super::IceoryxSubscriber::<u32>::new();
         // block on an asynchronous reception of data from test_subscriber
         futures::executor::block_on(async {
             let mut sample_buf = SampleContainer::new();
