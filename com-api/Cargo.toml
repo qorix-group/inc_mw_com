@@ -1,0 +1,9 @@
+[package]
+name = "com-api"
+version = "0.1.0"
+edition = "2024"
+publish = ["common"]
+license = "Apache-2.0"
+
+[dependencies]
+iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", version = "0.6.1" }
