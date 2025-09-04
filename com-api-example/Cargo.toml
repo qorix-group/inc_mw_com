@@ -5,10 +5,13 @@ edition = "2024"
 publish = ["common"]
 license = "Apache-2.0"
 
+[features]
+iceoryx = ["com-api/iceoryx", "com-api-gen/iceoryx"]
+lola = ["com-api/lola", "com-api-gen/lola"]
+
 [dependencies]
+com-api = { path = "../com-api/com-api", optional = true  }
+com-api-gen = { path = "../com-api-gen/com-api-gen", optional = true }
 
 [dev-dependencies]
-com-api = { path = "../com-api" }
-com-api-sample-gen = { path = "../com-api-sample-gen" }
-com-api-sample-runtime = { path = "../com-api-sample-runtime" }
 tokio = { version = "~1.43", features = ["rt-multi-thread", "macros", "test-util"] }

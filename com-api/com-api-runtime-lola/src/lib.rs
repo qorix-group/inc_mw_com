@@ -17,22 +17,17 @@ use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
-use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
 
-use iceoryx2::prelude::*;
-
-use com_api::{
+use com_api_concept::{
     Builder, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface, Reloc, Runtime,
     SampleContainer, ServiceDiscovery, Subscriber, Subscription,
 };
 
-pub struct RuntimeImpl {
-    node: Rc<Node<ipc::Service>>,
-}
+pub struct RuntimeImpl {}
 
 impl Runtime for RuntimeImpl {
-    type Sample<'a, T: Reloc + Send + std::fmt::Debug + 'a> = Sample<'a, T>;
+    type Sample<'a, T: Reloc + Send + 'a + std::fmt::Debug> = Sample<'a, T>;
 }
 
 impl RuntimeImpl {
@@ -43,13 +38,11 @@ impl RuntimeImpl {
         _instance_specifier: InstanceSpecifier,
     ) -> SampleConsumerDiscovery<I> {
         SampleConsumerDiscovery {
-            instance_specifier: _instance_specifier,
             _interface: PhantomData,
-            node: Rc::clone(&self.node),
         }
     }
 
-    pub fn producer_builder<I: Interface + iceoryx2::prelude::ZeroCopySend + std::fmt::Debug>(
+    pub fn producer_builder<I: Interface>(
         &self,
         instance_specifier: InstanceSpecifier,
     ) -> SampleProducerBuilder<I> {
@@ -57,12 +50,10 @@ impl RuntimeImpl {
     }
 }
 
-#[derive(Debug)]
 struct LolaEvent<T> {
     event: PhantomData<T>,
 }
 
-#[derive(Debug)]
 struct LolaBinding<'a, T>
 where
     T: Send,
@@ -73,52 +64,27 @@ where
 
 unsafe impl<'a, T> Send for LolaBinding<'a, T> where T: Send {}
 
-#[derive(Debug)]
-struct Iceoryx2Event<T> {
-    event: PhantomData<T>,
-}
-
-#[derive(Debug)]
-struct Iceoryx2Binding<'a, T>
-where
-    T: Send + Reloc + std::fmt::Debug + ZeroCopySend,
-{
-    data: iceoryx2::sample::Sample<ipc::Service, T, ()>,
-    event: &'a Iceoryx2Event<T>,
-}
-
-unsafe impl<'a, T> Send for Iceoryx2Binding<'a, T> where T: Send + Reloc + std::fmt::Debug + ZeroCopySend{}
-
-#[derive(Debug)]
 enum SampleBinding<'a, T>
 where
-    T: Send + Reloc + std::fmt::Debug + ZeroCopySend,
+    T: Send,
 {
-    Iceoryx2(Iceoryx2Binding<'a, T>),
     Lola(LolaBinding<'a, T>),
     Test(Box<T>),
 }
 
-#[derive(Debug)]
 pub struct Sample<'a, T>
 where
-    T: Reloc + Send + std::fmt::Debug + ZeroCopySend,
+    T: Reloc + Send,
 {
     id: usize,
     inner: SampleBinding<'a, T>,
-}
-
-unsafe impl<T> ZeroCopySend for Sample<'_, T>
-where
-    T: Reloc + Send + std::fmt::Debug + ZeroCopySend,
-{
 }
 
 static ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 impl<'a, T> From<T> for Sample<'a, T>
 where
-    T: Reloc + Send + std::fmt::Debug + ZeroCopySend,
+    T: Reloc + Send,
 {
     fn from(value: T) -> Self {
         Self {
@@ -130,35 +96,34 @@ where
 
 impl<'a, T> Deref for Sample<'a, T>
 where
-    T: Reloc + Send + std::fmt::Debug + ZeroCopySend,
+    T: Reloc + Send,
 {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         match &self.inner {
             SampleBinding::Lola(_lola) => unimplemented!(),
-            SampleBinding::Iceoryx2(_iceoryx2) => _iceoryx2.data.payload(),
             SampleBinding::Test(test) => test.as_ref(),
         }
     }
 }
 
-impl<'a, T> com_api::Sample<T> for Sample<'a, T> where T: Send + Reloc + std::fmt::Debug + ZeroCopySend{}
+impl<'a, T> com_api_concept::Sample<T> for Sample<'a, T> where T: Send + Reloc {}
 
 impl<'a, T> PartialEq for Sample<'a, T>
 where
-    T: Send + Reloc + std::fmt::Debug + ZeroCopySend,
+    T: Send + Reloc,
 {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl<'a, T> Eq for Sample<'a, T> where T: Send + Reloc + std::fmt::Debug  + ZeroCopySend{}
+impl<'a, T> Eq for Sample<'a, T> where T: Send + Reloc {}
 
 impl<'a, T> PartialOrd for Sample<'a, T>
 where
-    T: Send + Reloc + std::fmt::Debug + ZeroCopySend,
+    T: Send + Reloc,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -167,7 +132,7 @@ where
 
 impl<'a, T> Ord for Sample<'a, T>
 where
-    T: Send + Reloc + std::fmt::Debug + ZeroCopySend,
+    T: Send + Reloc,
 {
     fn cmp(&self, other: &Self) -> Ordering {
         self.id.cmp(&other.id)
@@ -176,15 +141,15 @@ where
 
 pub struct SampleMut<'a, T>
 where
-    T: Reloc + std::fmt::Debug + iceoryx2::prelude::ZeroCopySend,
+    T: Reloc,
 {
-    data: iceoryx2::sample_mut::SampleMut<ipc::Service, T, ()>,
+    data: T,
     _lifetime: PhantomData<&'a T>,
 }
 
-impl<'a, T> com_api::SampleMut<T> for SampleMut<'a, T>
+impl<'a, T> com_api_concept::SampleMut<T> for SampleMut<'a, T>
 where
-    T: Reloc + Send + std::fmt::Debug + iceoryx2::prelude::ZeroCopySend,
+    T: Reloc + Send,
 {
     type Sample = Sample<'a, T>;
 
@@ -192,15 +157,14 @@ where
         todo!()
     }
 
-    fn send(self) -> com_api::Result<()> {
-        let _ = self.data.send();
-        Ok(())
+    fn send(self) -> com_api_concept::Result<()> {
+        todo!()
     }
 }
 
 impl<'a, T> Deref for SampleMut<'a, T>
 where
-    T: Reloc + std::fmt::Debug + iceoryx2::prelude::ZeroCopySend,
+    T: Reloc,
 {
     type Target = T;
 
@@ -211,84 +175,68 @@ where
 
 impl<'a, T> DerefMut for SampleMut<'a, T>
 where
-    T: Reloc + std::fmt::Debug + iceoryx2::prelude::ZeroCopySend,
+    T: Reloc,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
     }
 }
 
-pub struct SampleMaybeUninit<'a, T: ZeroCopySend>
+pub struct SampleMaybeUninit<'a, T>
 where
-    T: Reloc + Send + ZeroCopySend,
+    T: Reloc + Send,
 {
-    data: iceoryx2::sample_mut_uninit::SampleMutUninit<ipc::Service, MaybeUninit<T>, ()>,
+    data: MaybeUninit<T>,
     _lifetime: PhantomData<&'a T>,
 }
 
-impl<'a, T> com_api::SampleMaybeUninit<T> for SampleMaybeUninit<'a, T>
+impl<'a, T> com_api_concept::SampleMaybeUninit<T> for SampleMaybeUninit<'a, T>
 where
-    T: Reloc + Send + ZeroCopySend + std::fmt::Debug,
+    T: Reloc + Send,
 {
     type SampleMut = SampleMut<'a, T>;
 
     fn write(self, val: T) -> SampleMut<'a, T> {
         SampleMut {
-            data: self.data.write_payload(val),
+            data: val,
             _lifetime: PhantomData,
         }
     }
-
-    // unsafe fn assume_init(self) -> SampleMut<'a, T> {
-    //     SampleMut {
-    //         data: unsafe { self.data.assume_init() },
-    //         _lifetime: PhantomData,
-    //     }
-    // }
 }
 
-pub struct SubscribableImpl<T: std::fmt::Debug + iceoryx2::prelude::ZeroCopySend> {
+pub struct SubscribableImpl<T> {
     _data: PhantomData<T>,
-    service: Option<iceoryx2::service::port_factory::publish_subscribe::PortFactory<ipc::Service, T, ()>>,
 }
 
-impl<T: std::fmt::Debug + iceoryx2::prelude::ZeroCopySend> Default for SubscribableImpl<T> {
+impl<T> Default for SubscribableImpl<T> {
     fn default() -> Self {
-        Self { _data: PhantomData, service: None }
+        Self { _data: PhantomData }
     }
 }
 
-impl<T: std::fmt::Debug + iceoryx2::prelude::ZeroCopySend> SubscribableImpl<T> {
-    pub fn new(service: iceoryx2::service::port_factory::publish_subscribe::PortFactory<ipc::Service,T,()>) -> Self {
-        Self { _data: PhantomData, service: Some(service) }
-    }
-}
-
-impl<T: Reloc + Send + iceoryx2::prelude::ZeroCopySend + std::fmt::Debug + 'static> Subscriber<T> for SubscribableImpl<T> {
+impl<T: Reloc + Send> Subscriber<T> for SubscribableImpl<T> {
     type Subscription = SubscriberImpl<T>;
 
-    fn subscribe(self, _max_num_samples: usize) -> com_api::Result<Self::Subscription> {
-        Ok(SubscriberImpl::new(self.service.unwrap()))
+    fn subscribe(self, _max_num_samples: usize) -> com_api_concept::Result<Self::Subscription> {
+        Ok(SubscriberImpl::new())
     }
 }
 
-pub struct SubscriberImpl<T: std::fmt::Debug + iceoryx2::prelude::ZeroCopySend + 'static>
+#[derive(Default)]
+pub struct SubscriberImpl<T>
 where
     T: Reloc + Send,
 {
     data: VecDeque<T>,
-    subscriber: iceoryx2::port::subscriber::Subscriber<ipc::Service, T, ()>,
 }
 
-impl<T: std::fmt::Debug + iceoryx2::prelude::ZeroCopySend> SubscriberImpl<T>
+impl<T> SubscriberImpl<T>
 where
     T: Reloc + Send,
 {
-    pub fn new(service: iceoryx2::service::port_factory::publish_subscribe::PortFactory<ipc::Service,T,()>) -> Self {
-        let subscriber = service.subscriber_builder().create().unwrap();
+    pub fn new() -> Self {
         Self {
             data: Default::default(),
-            subscriber: subscriber,
         }
     }
 
@@ -299,7 +247,7 @@ where
 
 impl<T> Subscription<T> for SubscriberImpl<T>
 where
-    T: Reloc + Send + iceoryx2::prelude::ZeroCopySend + std::fmt::Debug,
+    T: Reloc + Send,
 {
     type Subscriber = SubscribableImpl<T>;
     type Sample<'a>
@@ -315,26 +263,8 @@ where
         &'a self,
         _scratch: &'_ mut SampleContainer<Self::Sample<'a>>,
         _max_samples: usize,
-    ) -> com_api::Result<usize> {
-        let _result = self.subscriber.receive();
-        match _result {
-            Ok(option) => {
-                match option {
-                    Some(sample) => {
-                        let _res = _scratch.push_back( Sample {
-                        id: ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-                        inner: SampleBinding::Iceoryx2(Iceoryx2Binding {
-                            data: sample,
-                            event: &Iceoryx2Event { event: PhantomData },
-                        }),
-                    });
-                    return Ok(1)
-                    }
-                    None => return Ok(0),
-                }
-            },
-            Err(_e) => Err(com_api::Error::Fail),
-        }
+    ) -> com_api_concept::Result<usize> {
+        todo!()
     }
 
     #[allow(clippy::manual_async_fn)]
@@ -343,63 +273,48 @@ where
         _scratch: &'_ mut SampleContainer<Self::Sample<'a>>,
         _new_samples: usize,
         _max_samples: usize,
-    ) -> impl Future<Output = com_api::Result<usize>> + Send {
+    ) -> impl Future<Output = com_api_concept::Result<usize>> + Send {
         async { todo!() }
     }
 }
 
-pub struct Publisher<T: std::fmt::Debug + iceoryx2::prelude::ZeroCopySend + 'static> {
+pub struct Publisher<T> {
     _data: PhantomData<T>,
-    publisher: iceoryx2::port::publisher::Publisher<ipc::Service, T, ()>,
 }
 
-// impl<T: std::fmt::Debug + iceoryx2::prelude::ZeroCopySend> Default for Publisher<T>
-// where
-//     T: Reloc + Send,
-// {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
-
-impl<T: std::fmt::Debug + iceoryx2::prelude::ZeroCopySend> Publisher<T>
+impl<T> Default for Publisher<T>
 where
     T: Reloc + Send,
 {
-    pub fn new(
-        service: iceoryx2::service::port_factory::publish_subscribe::PortFactory<
-            ipc::Service,
-            T,
-            (),
-        >,
-    ) -> Self {
-        let publisher = service.publisher_builder().create().unwrap();
-        Self {
-            _data: PhantomData,
-            publisher: publisher,
-        }
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> Publisher<T>
+where
+    T: Reloc + Send,
+{
+    pub fn new() -> Self {
+        Self { _data: PhantomData }
     }
 
-    pub fn allocate<'a>(&'a self) -> com_api::Result<SampleMaybeUninit<'a, T>> {
+    pub fn allocate<'a>(&'a self) -> com_api_concept::Result<SampleMaybeUninit<'a, T>> {
         Ok(SampleMaybeUninit {
-            data: self.publisher.loan_uninit().unwrap(),
+            data: MaybeUninit::uninit(),
             _lifetime: PhantomData,
         })
     }
 }
 
 pub struct SampleConsumerDiscovery<I> {
-    pub instance_specifier: InstanceSpecifier,
     _interface: PhantomData<I>,
-    node: Rc<Node<ipc::Service>>,
 }
 
 impl<I> SampleConsumerDiscovery<I> {
     fn new(_runtime: &RuntimeImpl, _instance_specifier: InstanceSpecifier) -> Self {
         Self {
-            instance_specifier: _instance_specifier,
             _interface: PhantomData,
-            node: Rc::clone(&_runtime.node),
         }
     }
 }
@@ -411,30 +326,21 @@ where
     type ConsumerBuilder = SampleConsumerBuilder<I>;
     type ServiceEnumerator = Vec<SampleConsumerBuilder<I>>;
 
-    fn get_available_instances(&self) -> com_api::Result<Self::ServiceEnumerator> {
-        let mut result: Vec<SampleConsumerBuilder<I>> = Vec::new();
-        let instance_specifier = InstanceSpecifier{specifier:  self.instance_specifier.specifier.clone()};
-        result.push(SampleConsumerBuilder {
-            instance_specifier: instance_specifier,
-            _interface: PhantomData,
-            node: Rc::clone(&self.node),
-        });
-        Ok(result)
+    fn get_available_instances(&self) -> com_api_concept::Result<Self::ServiceEnumerator> {
+        Ok(Vec::new())
     }
 }
 
-pub struct SampleProducerBuilder<I: Interface + std::fmt::Debug + iceoryx2::prelude::ZeroCopySend> {
-    pub instance_specifier: InstanceSpecifier,
+pub struct SampleProducerBuilder<I: Interface> {
+    instance_specifier: InstanceSpecifier,
     _interface: PhantomData<I>,
-    pub node: Rc<Node<ipc::Service>>,
 }
 
-impl<I: Interface + std::fmt::Debug + iceoryx2::prelude::ZeroCopySend> SampleProducerBuilder<I> {
+impl<I: Interface> SampleProducerBuilder<I> {
     fn new(_runtime: &RuntimeImpl, instance_specifier: InstanceSpecifier) -> Self {
         Self {
             instance_specifier,
             _interface: PhantomData,
-            node: Rc::clone(&_runtime.node),
         }
     }
 }
@@ -452,31 +358,26 @@ impl<I: Interface> Clone for SampleConsumerDescriptor<I> {
 }
 
 pub struct SampleConsumerBuilder<I: Interface> {
-    pub instance_specifier: InstanceSpecifier,
+    instance_specifier: InstanceSpecifier,
     _interface: PhantomData<I>,
-    pub node: Rc<Node<ipc::Service>>,
 }
 
 impl<I: Interface> ConsumerDescriptor<RuntimeImpl> for SampleConsumerBuilder<I> {
     fn get_instance_id(&self) -> usize {
-        42
+        todo!()
     }
 }
 
 pub struct RuntimeBuilderImpl {}
 
 impl Builder<RuntimeImpl> for RuntimeBuilderImpl {
-    fn build(self) -> com_api::Result<RuntimeImpl> {
-        let node = NodeBuilder::new().create::<ipc::Service>();
-        match node {
-            Ok(n) => Ok(RuntimeImpl { node: Rc::new(n) }),
-            Err(_e) => Err(com_api::Error::Fail),
-        }
+    fn build(self) -> com_api_concept::Result<RuntimeImpl> {
+        Ok(RuntimeImpl {})
     }
 }
 
 /// Entry point for the default implementation for the com module of s-core
-impl com_api::RuntimeBuilder<RuntimeImpl> for RuntimeBuilderImpl {
+impl com_api_concept::RuntimeBuilder<RuntimeImpl> for RuntimeBuilderImpl {
     fn load_config(&mut self, _config: &Path) -> &mut Self {
         self
     }
@@ -497,7 +398,7 @@ impl RuntimeBuilderImpl {
 
 #[cfg(test)]
 mod test {
-    use com_api::{SampleContainer, Subscription};
+    use com_api_concept::{SampleContainer, Subscription};
 
     #[test]
     fn receive_stuff() {

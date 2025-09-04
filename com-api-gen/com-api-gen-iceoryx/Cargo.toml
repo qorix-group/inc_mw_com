@@ -1,0 +1,10 @@
+[package]
+name = "com-api-gen-iceoryx"
+version = "0.1.0"
+edition = "2024"
+publish = ["common"]
+
+[dependencies]
+iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", version = "0.6.1" }
+com-api-runtime-iceoryx = { path = "../../com-api/com-api-runtime-iceoryx" }
+com-api = { path = "../../com-api/com-api", features = ["iceoryx"] }

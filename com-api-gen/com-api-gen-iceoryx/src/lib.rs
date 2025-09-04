@@ -22,12 +22,10 @@
 //!
 //! ```
 
-use com_api::{
-    Builder, Consumer, ConsumerBuilder, Interface, OfferedProducer, Producer, ProducerBuilder,
-    Reloc,
+use com_api::prelude::*;
+use com_api_runtime_iceoryx::{
+    Publisher, RuntimeImpl, SampleConsumerBuilder, SampleProducerBuilder, SubscribableImpl,
 };
-use com_api_sample_runtime::RuntimeImpl;
-use com_api_sample_runtime::{SampleConsumerBuilder, SampleProducerBuilder};
 use iceoryx2::prelude::*;
 
 #[derive(Debug)]
@@ -55,15 +53,15 @@ pub struct AnotherInterface {}
 impl Interface for AnotherInterface {}
 
 pub struct VehicleProducer {
-    pub left_tire: com_api_sample_runtime::Publisher<Tire>,
-    pub exhaust: com_api_sample_runtime::Publisher<Exhaust>,
+    pub left_tire: Publisher<Tire>,
+    pub exhaust: Publisher<Exhaust>,
 }
 
 impl Producer for VehicleProducer {
     type Interface = VehicleInterface;
     type OfferedProducer = VehicleOfferedProducer;
 
-    fn offer(self) -> com_api::Result<Self::OfferedProducer> {
+    fn offer(self) -> com_api::prelude::Result<Self::OfferedProducer> {
         Ok(VehicleOfferedProducer {
             left_tire: self.left_tire,
             exhaust: self.exhaust,
@@ -72,8 +70,8 @@ impl Producer for VehicleProducer {
 }
 
 pub struct VehicleOfferedProducer {
-    pub left_tire: com_api_sample_runtime::Publisher<Tire>,
-    pub exhaust: com_api_sample_runtime::Publisher<Exhaust>,
+    pub left_tire: Publisher<Tire>,
+    pub exhaust: Publisher<Exhaust>,
 }
 
 impl OfferedProducer for VehicleOfferedProducer {
@@ -89,9 +87,9 @@ impl OfferedProducer for VehicleOfferedProducer {
 }
 
 impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
-    fn build(self) -> com_api::Result<VehicleProducer> {
+    fn build(self) -> com_api::prelude::Result<VehicleProducer> {
         let left_tire_name = format!("{}/left_tire", self.instance_specifier.specifier);
-        let left_tire = com_api_sample_runtime::Publisher::new(
+        let left_tire = Publisher::new(
             self.node
                 .service_builder(&ServiceName::new(left_tire_name.as_str()).unwrap())
                 .publish_subscribe::<Tire>()
@@ -99,7 +97,7 @@ impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
                 .unwrap(),
         );
         let exhaust_service_name = format!("{}/exhaust", self.instance_specifier.specifier);
-        let exhaust = com_api_sample_runtime::Publisher::new(
+        let exhaust = Publisher::new(
             self.node
                 .service_builder(&ServiceName::new(exhaust_service_name.as_str()).unwrap())
                 .publish_subscribe::<Exhaust>()
@@ -116,8 +114,8 @@ impl ProducerBuilder<VehicleInterface, RuntimeImpl, VehicleProducer>
 }
 
 pub struct VehicleConsumer {
-    pub left_tire: com_api_sample_runtime::SubscribableImpl<Tire>,
-    pub exhaust: com_api_sample_runtime::SubscribableImpl<Exhaust>,
+    pub left_tire: SubscribableImpl<Tire>,
+    pub exhaust: SubscribableImpl<Exhaust>,
 }
 
 impl Consumer for VehicleConsumer {}
@@ -125,24 +123,24 @@ impl Consumer for VehicleConsumer {}
 impl ConsumerBuilder<VehicleInterface, RuntimeImpl> for SampleConsumerBuilder<VehicleInterface> {}
 
 impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
-    fn build(self) -> com_api::Result<VehicleConsumer> {
+    fn build(self) -> com_api::prelude::Result<VehicleConsumer> {
         let left_tire_name = format!("{}/left_tire", self.instance_specifier.specifier);
-        let left_tire = 
-            self.node
-                .service_builder(&ServiceName::new(left_tire_name.as_str()).unwrap())
-                .publish_subscribe::<Tire>()
-                .open_or_create()
-                .unwrap();
+        let left_tire = self
+            .node
+            .service_builder(&ServiceName::new(left_tire_name.as_str()).unwrap())
+            .publish_subscribe::<Tire>()
+            .open_or_create()
+            .unwrap();
         let exhaust_service_name = format!("{}/exhaust", self.instance_specifier.specifier);
-        let exhaust = 
-            self.node
-                .service_builder(&ServiceName::new(exhaust_service_name.as_str()).unwrap())
-                .publish_subscribe::<Exhaust>()
-                .open_or_create()
-                .unwrap();
+        let exhaust = self
+            .node
+            .service_builder(&ServiceName::new(exhaust_service_name.as_str()).unwrap())
+            .publish_subscribe::<Exhaust>()
+            .open_or_create()
+            .unwrap();
         Ok(VehicleConsumer {
-            left_tire: com_api_sample_runtime::SubscribableImpl::new(left_tire),
-            exhaust: com_api_sample_runtime::SubscribableImpl::new(exhaust),
+            left_tire: SubscribableImpl::new(left_tire),
+            exhaust: SubscribableImpl::new(exhaust),
         })
     }
 }
