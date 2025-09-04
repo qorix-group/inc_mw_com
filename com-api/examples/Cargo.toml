@@ -1,0 +1,18 @@
+[package]
+name = "example"
+description = "com-api: examples"
+edition = { workspace = true }
+license = { workspace = true }
+version = { workspace = true }
+
+[features]
+iceoryx = ["com-api/iceoryx", "com-api-gen/iceoryx"]
+lola = ["com-api/lola", "com-api-gen/lola"]
+
+[dependencies]
+com-api = { workspace = true, optional = true }
+com-api-gen = { path = "com-api-gen", optional = true }
+
+[[example]]
+name = "basic-consumer-producer"
+path = "basic-consumer-producer/main.rs"

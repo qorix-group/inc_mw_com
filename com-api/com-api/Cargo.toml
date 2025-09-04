@@ -10,6 +10,6 @@ iceoryx = ["com-api-runtime-iceoryx"]
 lola = ["com-api-runtime-lola"]
 
 [dependencies]
-com-api-concept = { path = "../com-api-concept" }
-com-api-runtime-iceoryx = { path = "../com-api-runtime-iceoryx", optional = true  }
-com-api-runtime-lola = { path = "../com-api-runtime-lola", optional = true  }
+com-api-concept = { workspace = true }
+com-api-runtime-iceoryx = { workspace = true, optional = true  }
+com-api-runtime-lola = { workspace = true, optional = true  }

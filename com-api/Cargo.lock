@@ -115,6 +115,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "com-api-gen"
+version = "0.1.0"
+dependencies = [
+ "com-api-gen-iceoryx",
+ "com-api-gen-lola",
+]
+
+[[package]]
+name = "com-api-gen-iceoryx"
+version = "0.1.0"
+dependencies = [
+ "com-api",
+ "com-api-runtime-iceoryx",
+ "iceoryx2",
+]
+
+[[package]]
+name = "com-api-gen-lola"
+version = "0.1.0"
+dependencies = [
+ "com-api",
+ "com-api-runtime-lola",
+]
+
+[[package]]
 name = "com-api-runtime-iceoryx"
 version = "0.1.0"
 dependencies = [
@@ -174,6 +199,14 @@ name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+
+[[package]]
+name = "example"
+version = "0.1.0"
+dependencies = [
+ "com-api",
+ "com-api-gen",
+]
 
 [[package]]
 name = "find-msvc-tools"

@@ -5,7 +5,7 @@ members = [
     "com-api-concept",
     "com-api-runtime-iceoryx",
     "com-api-runtime-lola",
-    
+    "examples"
 ]
 
 [workspace.package]

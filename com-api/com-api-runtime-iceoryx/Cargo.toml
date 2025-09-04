@@ -5,7 +5,7 @@ edition = "2024"
 publish = ["common"]
 
 [dependencies]
-com-api-concept = { path = "../com-api-concept", features = ["iceoryx"] }
+com-api-concept = { workspace = true, features = ["iceoryx"] }
 iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", version = "0.6.1" }
 
 [dev-dependencies]

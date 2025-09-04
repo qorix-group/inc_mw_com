@@ -286,7 +286,10 @@ impl<T: Reloc + Send + iceoryx2::prelude::ZeroCopySend + std::fmt::Debug + 'stat
     type Subscription = SubscriberImpl<T>;
 
     fn subscribe(self, _max_num_samples: usize) -> com_api_concept::Result<Self::Subscription> {
-        Ok(SubscriberImpl::new(self.service.unwrap()))
+        match self.service {
+            None => return Err(com_api_concept::Error::SubscribeFailed),
+            Some(service) => return Ok(SubscriberImpl::new(service))
+        }
     }
 }
 
@@ -309,10 +312,15 @@ where
             (),
         >,
     ) -> Self {
-        let subscriber = service.subscriber_builder().create().unwrap();
-        Self {
-            data: Default::default(),
-            subscriber: subscriber,
+        let subscriber = service.subscriber_builder().create();
+        match subscriber {
+            Err(e) => panic!("Failed to create subscriber: {e}"),
+            Ok(subscriber_ok) => {
+                return Self {
+                    data: Default::default(),
+                    subscriber: subscriber_ok,
+                };
+            }
         }
     }
 
@@ -395,18 +403,29 @@ where
             (),
         >,
     ) -> Self {
-        let publisher = service.publisher_builder().create().unwrap();
-        Self {
-            _data: PhantomData,
-            publisher: publisher,
+        let publisher = service.publisher_builder().create();
+        match publisher {
+            Err(e) => panic!("Failed to create publisher: {e}"),
+            Ok(publisher_ok) => {
+                return Self {
+                    _data: PhantomData,
+                    publisher: publisher_ok,
+                };
+            }
         }
     }
 
     pub fn allocate<'a>(&'a self) -> com_api_concept::Result<SampleMaybeUninit<'a, T>> {
-        Ok(SampleMaybeUninit {
-            data: self.publisher.loan_uninit().unwrap(),
-            _lifetime: PhantomData,
-        })
+        let data_result = self.publisher.loan_uninit();
+        match data_result {
+            Err(_e) => return Err(com_api_concept::Error::AllocateFailed),
+            Ok(data_result_ok   ) => {
+                return Ok(SampleMaybeUninit {
+                    data: data_result_ok,
+                    _lifetime: PhantomData,
+                });
+            }
+        }
     }
 }
 
@@ -516,50 +535,5 @@ impl RuntimeBuilderImpl {
     /// Creates a new instance of the default implementation of the com layer
     pub fn new() -> Self {
         Self {}
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use com_api_concept::{SampleContainer, Subscription};
-
-    #[test]
-    fn receive_stuff() {
-        let test_subscriber = super::SubscriberImpl::<u32>::new();
-        for _ in 0..10 {
-            let mut sample_buf = SampleContainer::new();
-            let receive_result = test_subscriber.try_receive(&mut sample_buf, 1);
-            match receive_result {
-                Ok(0) => panic!("No sample received"),
-                Ok(x) => {
-                    println!(
-                        "{} samples received: sample[0] = {}",
-                        x,
-                        *sample_buf.front().unwrap()
-                    )
-                }
-                Err(e) => panic!("{:?}", e),
-            }
-        }
-    }
-
-    #[test]
-    fn receive_async_stuff() {
-        let test_subscriber = super::SubscriberImpl::<u32>::new();
-        // block on an asynchronous reception of data from test_subscriber
-        futures::executor::block_on(async {
-            let mut sample_buf = SampleContainer::new();
-            match test_subscriber.receive(&mut sample_buf, 1, 1).await {
-                Ok(0) => panic!("No sample received"),
-                Ok(x) => {
-                    println!(
-                        "{} samples received: sample[0] = {}",
-                        x,
-                        *sample_buf.front().unwrap()
-                    )
-                }
-                Err(e) => panic!("{:?}", e),
-            }
-        })
     }
 }

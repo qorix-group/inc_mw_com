@@ -10,5 +10,5 @@ iceoryx = ["com-api-gen-iceoryx"]
 lola = ["com-api-gen-lola"]
 
 [dependencies]
-com-api-gen-iceoryx = { path = "../com-api-gen-iceoryx", optional = true  }
-com-api-gen-lola = { path = "../com-api-gen-lola", optional = true  }
+com-api-gen-iceoryx = { path = "com-api-gen-iceoryx", optional = true  }
+com-api-gen-lola = { path = "com-api-gen-lola", optional = true  }

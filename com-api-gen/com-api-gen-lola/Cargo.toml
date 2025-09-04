@@ -1,9 +1,0 @@
-[package]
-name = "com-api-gen-lola"
-version = "0.1.0"
-edition = "2024"
-publish = ["common"]
-
-[dependencies]
-com-api-runtime-lola = { path = "../../com-api/com-api-runtime-lola" }
-com-api = { path = "../../com-api/com-api", features = ["lola"] }

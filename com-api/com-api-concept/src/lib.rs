@@ -50,6 +50,8 @@ pub enum Error {
     /// TODO: To be replaced, dummy value for "something went wrong"
     Fail,
     Timeout,
+    AllocateFailed,
+    SubscribeFailed,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
