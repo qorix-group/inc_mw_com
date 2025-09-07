@@ -3,9 +3,10 @@ name = "com-api-runtime-iceoryx"
 version = "0.1.0"
 edition = "2024"
 publish = ["common"]
+license = "Apache-2.0"
 
 [dependencies]
-com-api-concept = { workspace = true, features = ["iceoryx"] }
+com-api-concept = { path = "../com-api-concept", features = ["iceoryx"] }
 iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", version = "0.6.1" }
 
 [dev-dependencies]

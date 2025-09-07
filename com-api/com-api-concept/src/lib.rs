@@ -95,7 +95,7 @@ pub struct InstanceSpecifier {
 /// is unsafe for now. The expectation is that very few users ever need to implement this manually.
 #[cfg(feature = "iceoryx")]
 pub unsafe trait Reloc: iceoryx2::prelude::ZeroCopySend {}
-#[cfg(not(feature = "iceoryx"))]
+#[cfg(feature = "lola")]
 pub unsafe trait Reloc {}
 
 unsafe impl Reloc for () {}

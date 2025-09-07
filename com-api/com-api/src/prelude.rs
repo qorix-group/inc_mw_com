@@ -11,7 +11,7 @@
 
 #[cfg(feature = "iceoryx")]
 pub use com_api_runtime_iceoryx::RuntimeBuilderImpl;
-#[cfg(not(feature = "iceoryx"))]
+#[cfg(feature = "lola")]
 pub use com_api_runtime_lola::RuntimeBuilderImpl;
 
 pub use com_api_concept::{
