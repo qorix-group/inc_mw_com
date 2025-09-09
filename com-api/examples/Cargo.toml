@@ -1,0 +1,18 @@
+[package]
+name = "com-api-examples"
+version = "0.1.0"
+edition = "2024"
+publish = ["common"]
+license = "Apache-2.0"
+
+[features]
+iceoryx = ["com-api/iceoryx", "com-api-gen/iceoryx"]
+lola = ["com-api/lola", "com-api-gen/lola"]
+
+[dependencies]
+com-api = { path = "../com-api", optional = true }
+com-api-gen = { path = "com-api-gen", optional = true }
+
+[[example]]
+name = "basic-consumer-producer"
+path = "basic-consumer-producer/main.rs"

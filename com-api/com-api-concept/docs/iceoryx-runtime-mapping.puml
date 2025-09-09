@@ -1,0 +1,139 @@
+@startuml
+
+' Copyright (c) 2025 Contributors to the Eclipse Foundation
+'
+' See the NOTICE file(s) distributed with this work for additional
+' information regarding copyright ownership.
+'
+' This program and the accompanying materials are made available under the
+' terms of the Apache License Version 2.0 which is available at
+' <https://www.apache.org/licenses/LICENSE-2.0>
+'
+' SPDX-License-Identifier: Apache-2.0
+
+component GeneratedCode {
+  interface Producer {
+    type Interface: Interface
+  }
+  interface OfferedProducer {
+    type Interface: Interface
+  }
+  interface ProducerBuilder {
+    type Interface: Interface
+  }
+  interface ConsumerBuilder {
+    type Interface: Interface
+    node: iceoryx2::Node<Service>
+    instance_specifier: InstanceSpecifier
+    ---
+  }
+  interface Consumer {
+    type Interface: Interface
+    ---
+  }
+}
+
+class RuntimeImpl {
+  node: iceoryx2::Node<Service>
+}
+interface Publisher<T> {
+  publisher: iceoryx2::Publisher<Service, T, ()>
+  ---
+  allocate()
+}
+interface ServiceDiscovery {
+  type Enumerator: IntoIterator<ConsumerBuilder>
+  node: iceoryx2::Node<Service>
+  ---
+  get_available_instances()
+}
+interface Subscription<T> {
+  subscriber: iceoryx2::Subscriber<Service, T, ()>
+  ---
+  unsubscribe()
+  try_receive()
+  receive()
+}
+
+class InstanceSpecifier {
+  pub specifier: String
+}
+
+
+
+
+interface Sample<T>{
+  data: iceoryx2::Sample<Service, T, ()>
+  ---
+}
+
+
+interface SampleMut<T> {
+    data: iceoryx2::SampleMut<Service, T, ()>,
+    ---
+    into_sample(self) : Sample
+    send(self) : Result
+}
+
+
+interface SampleMaybeUninit<T> {
+    data: iceoryx2::SampleMutUninit<Service, MaybeUninit<T>, ()>
+    ---
+    assume_init(self) : SampleMut
+    write(self, data) : SampleMut
+    as_mut_ptr(&mut self) : *mut T
+}
+
+SampleMaybeUninit ..> SampleMut : write()
+
+
+
+RuntimeImpl ..> ProducerBuilder : creates
+
+
+ProducerBuilder ..> Producer : builds
+Producer ..> OfferedProducer : offer()
+Producer <.. OfferedProducer : unoffer()
+
+
+
+RuntimeImpl ..> ServiceDiscovery : creates
+
+interface ConsumerDescriptor {
+  type Interface: Interface
+  ---
+  get_instance_id()
+}
+
+class SubscribableImpl{
+  service: iceoryx2::PortFactory<Service, T, ()>
+  ---
+}
+
+ConsumerBuilder -o ServiceDiscovery::Enumerator
+ConsumerDescriptor <-- ConsumerBuilder
+ConsumerBuilder ..> Consumer : builds
+
+
+SubscribableImpl ..> Subscription : subscribe()
+SubscribableImpl <.. Subscription : unsubscribe()
+
+
+Consumer "1" *- "n" SubscribableImpl
+
+entity iceoryx2 {
+
+}
+
+Producer "1" *- "n" Publisher
+Subscription <.. Sample : receive()
+iceoryx2 ..> Sample : receive()
+
+Publisher ..> SampleMaybeUninit : allocate()
+
+Publisher <..> Subscription : data exchange
+
+
+SampleMut ..> iceoryx2 : send()
+
+@enduml

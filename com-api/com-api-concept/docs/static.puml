@@ -1,0 +1,151 @@
+@startuml
+
+' Copyright (c) 2025 Contributors to the Eclipse Foundation
+'
+' See the NOTICE file(s) distributed with this work for additional
+' information regarding copyright ownership.
+'
+' This program and the accompanying materials are made available under the
+' terms of the Apache License Version 2.0 which is available at
+' <https://www.apache.org/licenses/LICENSE-2.0>
+'
+' SPDX-License-Identifier: Apache-2.0
+
+component GeneratedCode {
+  interface Producer {
+    type Interface: Interface
+  }
+  interface OfferedProducer {
+    type Interface: Interface
+  }
+  interface ProducerBuilder {
+    type Interface: Interface
+  }
+}
+
+component Runtime-code {
+  class RuntimeImpl {
+    node: iceoryx2::Node<Service>
+  }
+  interface Publisher<T> {
+    publisher: iceoryx2::Publisher<Service, T, ()>
+  }
+  interface ServiceDiscovery {
+    type Enumerator: IntoIterator<ConsumerBuilder>
+    node: Node<ipc::Service>
+    get_available_instances()
+  }
+}
+
+interface Runtime {
+  type InstanceBuilder<I>
+}
+interface Builder<Output> {
+  build() : Output
+}
+
+class InstanceSpecifier {
+  pub specifier: String
+}
+
+
+Interface RuntimeBuilder {
+    load_config(&mut self, config: &Path): &mut Self
+    build(self): Self::Runtime
+}
+
+Builder <-- RuntimeBuilder : Builder<Runtime>
+RuntimeBuilder ..> Runtime : builds
+
+interface Deref
+interface DerefMut
+Deref <-- DerefMut
+
+interface Sample<T>{
+  Deref <-- Sample : Deref::Target=T
+}
+
+
+interface SampleMut<T> {
+    type Sample: Sample<T>
+    into_sample(self) : Sample
+    send(self) : Result
+}
+DerefMut <-- SampleMut : Deref::Target=T
+
+interface SampleMaybeUninit<T> {
+    type SampleMut: SampleMut<T>
+    assume_init(self) : SampleMut
+    write(self, data) : SampleMut
+    as_mut_ptr(&mut self) : *mut T
+}
+
+SampleMaybeUninit ..> SampleMut : builds
+Sample <.. SampleMut : builds
+
+Runtime <- RuntimeImpl
+
+RuntimeImpl ..> ProducerBuilder : creates
+
+
+Builder <-- ProducerBuilder : Builder<Producer>
+ProducerBuilder ..> Producer : builds (GENERATED)
+Producer ..> OfferedProducer : offer()
+Producer <.. OfferedProducer : unoffer()
+
+
+
+RuntimeImpl ..> ServiceDiscovery : creates
+
+interface ConsumerDescriptor {
+  type Interface: Interface
+  get_instance_id()
+}
+interface ConsumerBuilder {
+  type Interface: Interface
+  node: Node<ipc::Service>
+  instance_specifier: InstanceSpecifier
+}
+interface Consumer {
+  type Interface: Interface
+  field n: SubscribableImpl<T>
+}
+class SubscribableImpl{
+  service: iceoryx2::PortFactory<Service, T, ()>
+}
+
+Builder <-- ConsumerBuilder : Builder<Consumer>
+ServiceDiscovery ..> ServiceDiscovery::Enumerator : creates
+ConsumerBuilder -o ServiceDiscovery::Enumerator
+ConsumerDescriptor <-- ConsumerBuilder
+ConsumerBuilder ..> Consumer : builds
+
+interface Subscriber<T> {
+  subscribe()
+}
+interface Subscription<T> {
+  unsubscribe()
+  try_receive()
+  receive()
+}
+class SampleContainer<S> {
+  inner: VecDeque<S>
+}
+
+Sample "n" --o "1" SampleContainer
+
+Subscriber ..> Subscription : subscribe()
+Subscriber <.. Subscription : unsubscribe()
+
+SampleContainer <.. Subscription : populates sample data <
+
+Consumer "1" *- "n" Subscriber
+
+
+
+Producer "1" *- "n" Publisher
+Subscription <..> Publisher : event data exchange
+
+
+
+@enduml
