@@ -23,7 +23,7 @@
 //! ```
 
 use com_api::*;
-use com_api_runtime_iceoryx::{RuntimeImpl, SampleConsumerBuilder, SampleProducerBuilder};
+use com_api_runtime_mock::{RuntimeImpl, SampleConsumerBuilder, SampleProducerBuilder};
 
 #[derive(Debug)]
 pub struct Tire {}
@@ -53,8 +53,8 @@ impl Producer for VehicleProducer {
 }
 
 pub struct VehicleOfferedProducer {
-    pub left_tire: com_api_runtime_iceoryx::Publisher<Tire>,
-    pub exhaust: com_api_runtime_iceoryx::Publisher<Exhaust>,
+    pub left_tire: com_api_runtime_mock::Publisher<Tire>,
+    pub exhaust: com_api_runtime_mock::Publisher<Exhaust>,
 }
 
 impl OfferedProducer for VehicleOfferedProducer {
@@ -78,8 +78,8 @@ impl ProducerBuilder<VehicleInterface, RuntimeImpl, VehicleProducer>
 }
 
 pub struct VehicleConsumer {
-    pub left_tire: com_api_runtime_iceoryx::SubscribableImpl<Tire>,
-    pub exhaust: com_api_runtime_iceoryx::SubscribableImpl<Exhaust>,
+    pub left_tire: com_api_runtime_mock::SubscribableImpl<Tire>,
+    pub exhaust: com_api_runtime_mock::SubscribableImpl<Exhaust>,
 }
 
 impl Consumer for VehicleConsumer {}

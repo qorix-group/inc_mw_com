@@ -50,25 +50,25 @@ impl RuntimeImpl {
     }
 }
 
-struct IceoryxEvent<T> {
+struct MockEvent<T> {
     event: PhantomData<T>,
 }
 
-struct IceoryxBinding<'a, T>
+struct MockBinding<'a, T>
 where
     T: Send,
 {
     data: *mut T,
-    event: &'a IceoryxEvent<T>,
+    event: &'a MockEvent<T>,
 }
 
-unsafe impl<'a, T> Send for IceoryxBinding<'a, T> where T: Send {}
+unsafe impl<'a, T> Send for MockBinding<'a, T> where T: Send {}
 
 enum SampleBinding<'a, T>
 where
     T: Send,
 {
-    Iceoryx(IceoryxBinding<'a, T>),
+    Mock(MockBinding<'a, T>),
     Test(Box<T>),
 }
 
@@ -102,7 +102,7 @@ where
 
     fn deref(&self) -> &Self::Target {
         match &self.inner {
-            SampleBinding::Iceoryx(_iceoryx) => unimplemented!(),
+            SampleBinding::Mock(_mock) => unimplemented!(),
             SampleBinding::Test(test) => test.as_ref(),
         }
     }
