@@ -93,6 +93,9 @@ pub struct InstanceSpecifier {
 ///
 /// Since it is yet to be proven whether this trait can be implemented safely (assumption is: no) it
 /// is unsafe for now. The expectation is that very few users ever need to implement this manually.
+#[cfg(feature = "iceoryx")]
+pub unsafe trait Reloc: iceoryx2::prelude::ZeroCopySend {}
+#[cfg(feature = "lola")]
 pub unsafe trait Reloc {}
 
 unsafe impl Reloc for () {}
@@ -177,8 +180,11 @@ pub trait ProducerConcept {
 
 pub trait ConsumerConcept {}
 
-pub trait ProducerBuilderConcept<I: InterfaceConcept, R: AdapterConcept, P: ProducerConcept<Interface = I>>:
-    BuilderConcept<P>
+pub trait ProducerBuilderConcept<
+    I: InterfaceConcept,
+    R: AdapterConcept,
+    P: ProducerConcept<Interface = I>,
+>: BuilderConcept<P>
 {
 }
 
@@ -194,7 +200,10 @@ pub trait ConsumerDescriptorConcept<R: AdapterConcept> {
     fn get_instance_id(&self) -> usize; // TODO: Turn return type into separate type
 }
 
-pub trait ConsumerBuilderConcept<I: InterfaceConcept, R: AdapterConcept>: ConsumerDescriptorConcept<R> {}
+pub trait ConsumerBuilderConcept<I: InterfaceConcept, R: AdapterConcept>:
+    ConsumerDescriptorConcept<R>
+{
+}
 
 pub trait SubscriberConcept<T: Reloc + Send> {
     type Subscription: SubscriptionConcept<T>;

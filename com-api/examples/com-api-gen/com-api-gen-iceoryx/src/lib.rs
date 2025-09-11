@@ -23,32 +23,50 @@
 //! ```
 
 use com_api::*;
-use com_api_runtime_iceoryx::{IceoryxAdapter, IceoryxConsumerBuilder, IceoryxProducerBuilder, IceoryxPublisher, IceoryxSubscribable};
+use com_api_runtime_iceoryx::{
+    IceoryxAdapter, IceoryxConsumerBuilder, IceoryxProducerBuilder, IceoryxPublisher,
+    IceoryxSubscribable,
+};
+use iceoryx2::prelude::*;
 
 #[derive(Debug)]
+#[repr(C)]
 pub struct Tire {}
 unsafe impl Reloc for Tire {}
+unsafe impl ZeroCopySend for Tire {}
 
+#[derive(Debug)]
+#[repr(C)]
 pub struct Exhaust {}
 unsafe impl Reloc for Exhaust {}
+unsafe impl ZeroCopySend for Exhaust {}
 
+#[derive(Debug)]
+#[repr(C)]
 pub struct VehicleInterface {}
 
 /// Generic
 impl InterfaceConcept for VehicleInterface {}
+unsafe impl ZeroCopySend for VehicleInterface {}
 
 pub struct AnotherInterface {}
 
 impl InterfaceConcept for AnotherInterface {}
 
-pub struct VehicleProducer {}
+pub struct VehicleProducer {
+    pub left_tire: IceoryxPublisher<Tire>,
+    pub exhaust: IceoryxPublisher<Exhaust>,
+}
 
 impl ProducerConcept for VehicleProducer {
     type Interface = VehicleInterface;
     type OfferedProducer = VehicleOfferedProducer;
 
     fn offer(self) -> com_api::Result<Self::OfferedProducer> {
-        todo!()
+        Ok(VehicleOfferedProducer {
+            left_tire: self.left_tire,
+            exhaust: self.exhaust,
+        })
     }
 }
 
@@ -62,13 +80,32 @@ impl OfferedProducerConcept for VehicleOfferedProducer {
     type Producer = VehicleProducer;
 
     fn unoffer(self) -> Self::Producer {
-        VehicleProducer {}
+        VehicleProducer {
+            left_tire: self.left_tire,
+            exhaust: self.exhaust,
+        }
     }
 }
 
 impl BuilderConcept<VehicleProducer> for IceoryxProducerBuilder<VehicleInterface> {
     fn build(self) -> com_api::Result<VehicleProducer> {
-        todo!()
+        let left_tire_name = format!("{}/left_tire", self.instance_specifier.specifier);
+        let left_tire = IceoryxPublisher::new(
+            self.node
+                .service_builder(&ServiceName::new(left_tire_name.as_str()).unwrap())
+                .publish_subscribe::<Tire>()
+                .open_or_create()
+                .unwrap(),
+        );
+        let exhaust_service_name = format!("{}/exhaust", self.instance_specifier.specifier);
+        let exhaust = IceoryxPublisher::new(
+            self.node
+                .service_builder(&ServiceName::new(exhaust_service_name.as_str()).unwrap())
+                .publish_subscribe::<Exhaust>()
+                .open_or_create()
+                .unwrap(),
+        );
+        Ok(VehicleProducer { left_tire, exhaust })
     }
 }
 
@@ -84,10 +121,30 @@ pub struct VehicleConsumer {
 
 impl ConsumerConcept for VehicleConsumer {}
 
-impl ConsumerBuilderConcept<VehicleInterface, IceoryxAdapter> for IceoryxConsumerBuilder<VehicleInterface> {}
+impl ConsumerBuilderConcept<VehicleInterface, IceoryxAdapter>
+    for IceoryxConsumerBuilder<VehicleInterface>
+{
+}
 
 impl BuilderConcept<VehicleConsumer> for IceoryxConsumerBuilder<VehicleInterface> {
     fn build(self) -> com_api::Result<VehicleConsumer> {
-        todo!()
+        let left_tire_name = format!("{}/left_tire", self.instance_specifier.specifier);
+        let left_tire = self
+            .node
+            .service_builder(&ServiceName::new(left_tire_name.as_str()).unwrap())
+            .publish_subscribe::<Tire>()
+            .open_or_create()
+            .unwrap();
+        let exhaust_service_name = format!("{}/exhaust", self.instance_specifier.specifier);
+        let exhaust = self
+            .node
+            .service_builder(&ServiceName::new(exhaust_service_name.as_str()).unwrap())
+            .publish_subscribe::<Exhaust>()
+            .open_or_create()
+            .unwrap();
+        Ok(VehicleConsumer {
+            left_tire: IceoryxSubscribable::new(left_tire),
+            exhaust: IceoryxSubscribable::new(exhaust),
+        })
     }
 }

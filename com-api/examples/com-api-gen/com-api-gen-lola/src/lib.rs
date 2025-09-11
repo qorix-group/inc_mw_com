@@ -23,7 +23,9 @@
 //! ```
 
 use com_api::*;
-use com_api_runtime_lola::{LolaAdapter, LolaConsumerBuilder, LolaProducerBuilder, LolaPublisher, LolaSubscribable};
+use com_api_runtime_lola::{
+    LolaAdapter, LolaConsumerBuilder, LolaProducerBuilder, LolaPublisher, LolaSubscribable,
+};
 
 #[derive(Debug)]
 pub struct Tire {}
@@ -84,7 +86,10 @@ pub struct VehicleConsumer {
 
 impl ConsumerConcept for VehicleConsumer {}
 
-impl ConsumerBuilderConcept<VehicleInterface, LolaAdapter> for LolaConsumerBuilder<VehicleInterface> {}
+impl ConsumerBuilderConcept<VehicleInterface, LolaAdapter>
+    for LolaConsumerBuilder<VehicleInterface>
+{
+}
 
 impl BuilderConcept<VehicleConsumer> for LolaConsumerBuilder<VehicleInterface> {
     fn build(self) -> com_api::Result<VehicleConsumer> {
