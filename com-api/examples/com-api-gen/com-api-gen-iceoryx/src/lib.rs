@@ -118,9 +118,9 @@ pub struct VehicleConsumer {
     pub exhaust: SubscribableImpl<Exhaust>,
 }
 
-impl Consumer for VehicleConsumer {}
-
-impl ConsumerBuilder<VehicleInterface, RuntimeImpl> for SampleConsumerBuilder<VehicleInterface> {}
+impl Consumer for VehicleConsumer {
+    type Interface = VehicleInterface;
+}
 
 impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
     fn build(self) -> com_api::prelude::Result<VehicleConsumer> {

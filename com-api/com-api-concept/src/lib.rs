@@ -75,6 +75,7 @@ where
     fn load_config(&mut self, config: &Path) -> &mut Self;
 }
 
+#[derive(Debug, Clone)]
 pub struct InstanceSpecifier {
     pub specifier: String,
 }
@@ -178,7 +179,9 @@ pub trait Producer {
     fn offer(self) -> Result<Self::OfferedProducer>;
 }
 
-pub trait Consumer {}
+pub trait Consumer {
+    type Interface: Interface;
+}
 
 pub trait ProducerBuilder<I: Interface, R: Runtime, P: Producer<Interface = I>>:
     Builder<P>
@@ -304,5 +307,5 @@ pub trait Subscription<T: Reloc + Send> {
         scratch: &'_ mut SampleContainer<Self::Sample<'a>>,
         new_samples: usize,
         max_samples: usize,
-    ) -> impl Future<Output = Result<usize>> + Send;
+    ) -> impl Future<Output = Result<usize>>;
 }

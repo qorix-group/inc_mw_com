@@ -9,13 +9,21 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// pub use com_api_runtime_iceoryx::OfferedProducerImpl;
+pub use com_api_runtime_iceoryx::Publisher;
 #[cfg(feature = "iceoryx")]
 pub use com_api_runtime_iceoryx::RuntimeBuilderImpl;
+pub use com_api_runtime_iceoryx::RuntimeImpl;
+pub use com_api_runtime_iceoryx::SampleConsumerBuilder;
+pub use com_api_runtime_iceoryx::SampleProducerBuilder;
+// pub use com_api_runtime_iceoryx::SubscribableImpl;
+pub use com_api_runtime_iceoryx::SubscriberImpl;
+
 #[cfg(feature = "lola")]
 pub use com_api_runtime_lola::RuntimeBuilderImpl;
 
 pub use com_api_concept::{
-    Builder, Consumer, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface,
+    Builder, Consumer, ConsumerBuilder, ConsumerDescriptor, Error, InstanceSpecifier, Interface,
     OfferedProducer, Producer, ProducerBuilder, Reloc, Result, SampleContainer, SampleMaybeUninit,
     SampleMut, ServiceDiscovery, Subscriber, Subscription,
 };

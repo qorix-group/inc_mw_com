@@ -82,7 +82,9 @@ pub struct VehicleConsumer {
     pub exhaust: com_api_runtime_lola::SubscribableImpl<Exhaust>,
 }
 
-impl Consumer for VehicleConsumer {}
+impl Consumer for VehicleConsumer {
+    type Interface = VehicleInterface;
+}
 
 impl ConsumerBuilder<VehicleInterface, RuntimeImpl> for SampleConsumerBuilder<VehicleInterface> {}
 
