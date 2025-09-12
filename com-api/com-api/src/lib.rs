@@ -31,7 +31,8 @@ pub type ConsumerBuilder = com_api_runtime_lola::LolaConsumerBuilder<Adapter>;
 pub type Subscriber = com_api_runtime_lola::LolaSubscriber<Adapter>;
 
 pub use com_api_concept::{
-    BuilderConcept, ConsumerConcept, ConsumerBuilderConcept, ConsumerDescriptorConcept, InstanceSpecifier, InterfaceConcept,
-    OfferedProducerConcept, ProducerConcept, ProducerBuilderConcept, Reloc, Result, SampleContainer, SampleMaybeUninitConcept, SampleConcept,
+    BuilderConcept, ConsumerBuilderConcept, ConsumerConcept, ConsumerDescriptorConcept,
+    InstanceSpecifier, InterfaceConcept, OfferedProducerConcept, ProducerBuilderConcept,
+    ProducerConcept, Reloc, Result, SampleConcept, SampleContainer, SampleMaybeUninitConcept,
     SampleMutConcept, ServiceDiscoveryConcept, SubscriberConcept, SubscriptionConcept,
 };

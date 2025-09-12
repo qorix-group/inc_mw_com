@@ -5,8 +5,11 @@ edition = "2024"
 publish = ["common"]
 license = "Apache-2.0"
 
+[features]
+lola = ["com-api-concept/lola"]
+
 [dependencies]
-com-api-concept = { workspace = true, features = ["lola"] }
+com-api-concept = { workspace = true, optional = true }
 
 [dev-dependencies]
 futures = "0.3"

@@ -5,8 +5,12 @@ edition = "2024"
 publish = ["common"]
 license = "Apache-2.0"
 
+[features]
+iceoryx = ["com-api-concept/iceoryx"]
+
 [dependencies]
-com-api-concept = { workspace = true, features = ["iceoryx"] }
+com-api-concept = { workspace = true, optional = true }
+iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", version = "0.6.1" }
 
 [dev-dependencies]
 futures = "0.3"
