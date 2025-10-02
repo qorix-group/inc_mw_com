@@ -42,6 +42,33 @@ unsafe impl ZeroCopySend for Exhaust {}
 
 #[derive(Debug)]
 #[repr(C)]
+pub struct WindowsPosition {
+    pub fl: u8,
+    pub fr: u8,
+    pub rl: u8,
+    pub rr: u8,
+}
+unsafe impl Reloc for WindowsPosition {}
+unsafe impl ZeroCopySend for WindowsPosition {}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct RainSensor {
+    pub is_wet: bool,
+}
+unsafe impl Reloc for RainSensor {}
+unsafe impl ZeroCopySend for RainSensor {}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct CloseWindows {
+    pub close: bool,
+}
+unsafe impl Reloc for CloseWindows {}
+unsafe impl ZeroCopySend for CloseWindows {}
+
+#[derive(Debug)]
+#[repr(C)]
 pub struct VehicleInterface {}
 
 /// Generic
@@ -55,6 +82,9 @@ impl Interface for AnotherInterface {}
 pub struct VehicleProducer {
     pub left_tire: Publisher<Tire>,
     pub exhaust: Publisher<Exhaust>,
+    pub windows_position: Publisher<WindowsPosition>,
+    pub rain_sensor: Publisher<RainSensor>,
+    pub close_windows: Publisher<CloseWindows>,
 }
 
 impl Producer for VehicleProducer {
@@ -65,6 +95,9 @@ impl Producer for VehicleProducer {
         Ok(VehicleOfferedProducer {
             left_tire: self.left_tire,
             exhaust: self.exhaust,
+            windows_position: self.windows_position,
+            rain_sensor: self.rain_sensor,
+            close_windows: self.close_windows,
         })
     }
 }
@@ -72,6 +105,9 @@ impl Producer for VehicleProducer {
 pub struct VehicleOfferedProducer {
     pub left_tire: Publisher<Tire>,
     pub exhaust: Publisher<Exhaust>,
+    pub windows_position: Publisher<WindowsPosition>,
+    pub rain_sensor: Publisher<RainSensor>,
+    pub close_windows: Publisher<CloseWindows>,
 }
 
 impl OfferedProducer for VehicleOfferedProducer {
@@ -82,6 +118,9 @@ impl OfferedProducer for VehicleOfferedProducer {
         VehicleProducer {
             left_tire: self.left_tire,
             exhaust: self.exhaust,
+            windows_position: self.windows_position,
+            rain_sensor: self.rain_sensor,
+            close_windows: self.close_windows,
         }
     }
 }
@@ -104,7 +143,31 @@ impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
                 .open_or_create()
                 .unwrap(),
         );
-        Ok(VehicleProducer { left_tire, exhaust })
+        let windows_position_service_name = format!("{}/windows_position", self.instance_specifier.specifier);
+        let windows_position = Publisher::new(
+            self.node
+                .service_builder(&ServiceName::new(windows_position_service_name.as_str()).unwrap())
+                .publish_subscribe::<WindowsPosition>()
+                .open_or_create()
+                .unwrap(),
+        );
+        let rain_sensor_service_name = format!("{}/rain_sensor", self.instance_specifier.specifier);
+        let rain_sensor = Publisher::new(
+            self.node
+                .service_builder(&ServiceName::new(rain_sensor_service_name.as_str()).unwrap())
+                .publish_subscribe::<RainSensor>()
+                .open_or_create()
+                .unwrap(),
+        );
+        let close_windows_service_name = format!("{}/close_windows", self.instance_specifier.specifier);
+        let close_windows = Publisher::new(
+            self.node
+                .service_builder(&ServiceName::new(close_windows_service_name.as_str()).unwrap())
+                .publish_subscribe::<CloseWindows>()
+                .open_or_create()
+                .unwrap(),
+        );
+        Ok(VehicleProducer { left_tire, exhaust, windows_position, rain_sensor, close_windows })
     }
 }
 
@@ -116,6 +179,9 @@ impl ProducerBuilder<VehicleInterface, RuntimeImpl, VehicleProducer>
 pub struct VehicleConsumer {
     pub left_tire: SubscribableImpl<Tire>,
     pub exhaust: SubscribableImpl<Exhaust>,
+    pub windows_position: SubscribableImpl<WindowsPosition>,
+    pub rain_sensor: SubscribableImpl<RainSensor>,
+    pub close_windows: SubscribableImpl<CloseWindows>,
 }
 
 impl Consumer for VehicleConsumer {
@@ -138,9 +204,33 @@ impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
             .publish_subscribe::<Exhaust>()
             .open_or_create()
             .unwrap();
+        let windows_position_service_name = format!("{}/windows_position", self.instance_specifier.specifier);
+        let windows_position = self
+            .node
+            .service_builder(&ServiceName::new(windows_position_service_name.as_str()).unwrap())
+            .publish_subscribe::<WindowsPosition>()
+            .open_or_create()
+            .unwrap();
+        let rain_sensor_service_name = format!("{}/rain_sensor", self.instance_specifier.specifier);
+        let rain_sensor = self
+            .node
+            .service_builder(&ServiceName::new(rain_sensor_service_name.as_str()).unwrap())
+            .publish_subscribe::<RainSensor>()
+            .open_or_create()
+            .unwrap();
+        let close_windows_service_name = format!("{}/close_windows", self.instance_specifier.specifier);
+        let close_windows = self
+            .node
+            .service_builder(&ServiceName::new(close_windows_service_name.as_str()).unwrap())
+            .publish_subscribe::<CloseWindows>()
+            .open_or_create()
+            .unwrap();
         Ok(VehicleConsumer {
             left_tire: SubscribableImpl::new(left_tire),
             exhaust: SubscribableImpl::new(exhaust),
+            windows_position: SubscribableImpl::new(windows_position),
+            rain_sensor: SubscribableImpl::new(rain_sensor),
+            close_windows: SubscribableImpl::new(close_windows),
         })
     }
 }

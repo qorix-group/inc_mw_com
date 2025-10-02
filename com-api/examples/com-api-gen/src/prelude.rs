@@ -11,7 +11,7 @@
 
 #[cfg(feature = "iceoryx")]
 pub use com_api_gen_iceoryx::{
-    Exhaust, Tire, VehicleConsumer, VehicleInterface, VehicleOfferedProducer, VehicleProducer,
+    Exhaust, Tire, WindowsPosition, RainSensor, CloseWindows, VehicleConsumer, VehicleInterface, VehicleOfferedProducer, VehicleProducer,
 };
 #[cfg(feature = "lola")]
 pub use com_api_gen_lola::{Tire, VehicleInterface};
