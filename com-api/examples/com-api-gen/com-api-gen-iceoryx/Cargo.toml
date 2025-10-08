@@ -9,3 +9,6 @@ license = "Apache-2.0"
 iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", version = "0.6.1" }
 com-api-runtime-iceoryx = { path = "../../../com-api-runtime-iceoryx" }
 com-api = { path = "../../../com-api", features = ["iceoryx"] }
+
+[build-dependencies]
+abi-types-codegen = { git = "ssh://git@github.com/qorix-group/abi_tools_internal.git", rev = "1196d20246a38718e469b42953714e5eddb15d56" }

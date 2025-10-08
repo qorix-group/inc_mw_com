@@ -1,0 +1,14 @@
+struct WindowsPosition {
+    fl: u8,
+    fr: u8,
+    rl: u8,
+    rr: u8,
+}
+
+struct RainSensor {
+    is_wet: bool,
+}
+
+struct CloseWindows {
+    close: bool,
+}

@@ -22,11 +22,15 @@
 //!
 //! ```
 
+mod vehicle_interface;
+
 use com_api::prelude::*;
 use com_api_runtime_iceoryx::{
     Publisher, RuntimeImpl, SampleConsumerBuilder, SampleProducerBuilder, SubscribableImpl,
 };
 use iceoryx2::prelude::*;
+
+use vehicle_interface::*;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -39,33 +43,6 @@ unsafe impl ZeroCopySend for Tire {}
 pub struct Exhaust {}
 unsafe impl Reloc for Exhaust {}
 unsafe impl ZeroCopySend for Exhaust {}
-
-#[derive(Debug)]
-#[repr(C)]
-pub struct WindowsPosition {
-    pub fl: u8,
-    pub fr: u8,
-    pub rl: u8,
-    pub rr: u8,
-}
-unsafe impl Reloc for WindowsPosition {}
-unsafe impl ZeroCopySend for WindowsPosition {}
-
-#[derive(Debug)]
-#[repr(C)]
-pub struct RainSensor {
-    pub is_wet: bool,
-}
-unsafe impl Reloc for RainSensor {}
-unsafe impl ZeroCopySend for RainSensor {}
-
-#[derive(Debug)]
-#[repr(C)]
-pub struct CloseWindows {
-    pub close: bool,
-}
-unsafe impl Reloc for CloseWindows {}
-unsafe impl ZeroCopySend for CloseWindows {}
 
 #[derive(Debug)]
 #[repr(C)]
