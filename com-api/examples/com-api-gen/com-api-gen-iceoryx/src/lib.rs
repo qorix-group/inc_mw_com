@@ -22,6 +22,7 @@
 //!
 //! ```
 
+#[path = "generated/vehicle_interface.rs"]
 mod vehicle_interface;
 
 use com_api::prelude::*;
