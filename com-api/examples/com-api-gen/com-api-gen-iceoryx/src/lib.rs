@@ -143,7 +143,8 @@ impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
                 .open_or_create()
                 .unwrap(),
         );
-        let windows_position_service_name = format!("{}/windows_position", self.instance_specifier.specifier);
+        let windows_position_service_name =
+            format!("{}/windows_position", self.instance_specifier.specifier);
         let windows_position = Publisher::new(
             self.node
                 .service_builder(&ServiceName::new(windows_position_service_name.as_str()).unwrap())
@@ -159,7 +160,8 @@ impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
                 .open_or_create()
                 .unwrap(),
         );
-        let close_windows_service_name = format!("{}/close_windows", self.instance_specifier.specifier);
+        let close_windows_service_name =
+            format!("{}/close_windows", self.instance_specifier.specifier);
         let close_windows = Publisher::new(
             self.node
                 .service_builder(&ServiceName::new(close_windows_service_name.as_str()).unwrap())
@@ -167,7 +169,13 @@ impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
                 .open_or_create()
                 .unwrap(),
         );
-        Ok(VehicleProducer { left_tire, exhaust, windows_position, rain_sensor, close_windows })
+        Ok(VehicleProducer {
+            left_tire,
+            exhaust,
+            windows_position,
+            rain_sensor,
+            close_windows,
+        })
     }
 }
 
@@ -204,7 +212,8 @@ impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
             .publish_subscribe::<Exhaust>()
             .open_or_create()
             .unwrap();
-        let windows_position_service_name = format!("{}/windows_position", self.instance_specifier.specifier);
+        let windows_position_service_name =
+            format!("{}/windows_position", self.instance_specifier.specifier);
         let windows_position = self
             .node
             .service_builder(&ServiceName::new(windows_position_service_name.as_str()).unwrap())
@@ -218,7 +227,8 @@ impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
             .publish_subscribe::<RainSensor>()
             .open_or_create()
             .unwrap();
-        let close_windows_service_name = format!("{}/close_windows", self.instance_specifier.specifier);
+        let close_windows_service_name =
+            format!("{}/close_windows", self.instance_specifier.specifier);
         let close_windows = self
             .node
             .service_builder(&ServiceName::new(close_windows_service_name.as_str()).unwrap())
