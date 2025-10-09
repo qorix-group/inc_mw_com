@@ -96,11 +96,13 @@ pub struct InstanceSpecifier {
 /// is unsafe for now. The expectation is that very few users ever need to implement this manually.
 #[cfg(feature = "iceoryx")]
 pub unsafe trait Reloc: iceoryx2::prelude::ZeroCopySend {}
+
 #[cfg(feature = "lola")]
 pub unsafe trait Reloc {}
 
 unsafe impl Reloc for () {}
 unsafe impl Reloc for u32 {}
+unsafe impl Reloc for bool {}
 
 /// A `Sample` provides a reference to a memory buffer of an event with immutable value.
 ///

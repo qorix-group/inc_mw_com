@@ -27,3 +27,5 @@ pub use com_api_concept::{
     OfferedProducer, Producer, ProducerBuilder, Reloc, Result, SampleContainer, SampleMaybeUninit,
     SampleMut, ServiceDiscovery, Subscriber, Subscription,
 };
+
+pub use com_api_macros::Reloc;
