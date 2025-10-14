@@ -6,6 +6,6 @@ publish = ["common"]
 license = "Apache-2.0"
 
 [dependencies]
-iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", version = "0.6.1" }
+iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", rev = "cfa8b10fe1e723b22dc5abd97a155b6a992fe8e6" }
 com-api-runtime-iceoryx = { path = "../../../com-api-runtime-iceoryx" }
 com-api = { path = "../../../com-api", features = ["iceoryx"] }
