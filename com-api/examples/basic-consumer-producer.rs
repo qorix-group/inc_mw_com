@@ -10,7 +10,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use com_api::*;
-use com_api_gen::*;
+use com_api_runtime_mock::{RuntimeBuilderImpl, MockRuntimeImpl};
+use com_api_gen_mock::{Tire, VehicleInterface};
 
 fn main() {
     let runtime_builder = RuntimeBuilderImpl::new();
