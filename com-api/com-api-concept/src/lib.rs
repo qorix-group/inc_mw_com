@@ -69,17 +69,26 @@ pub trait Builder<Output>: Sized {
     fn new() -> Self;
 }
 
+pub trait BuilderT<Output, RuntimeT: Runtime>: Sized {
+    /// TODO: Should this be &mut self so that this can be turned into a trait object?
+    fn build(self) -> Result<Output>;
+
+    /// TODO what shall be input to this, ConsumerBuilder trait ?
+    fn new(i: &RuntimeT::ConsumerBuilderImpl) -> Self;
+}
+
 /// This represents the com implementation and acts as a root for all types and objects provided by
 /// the implementation.
 pub trait Runtime: Sized {
     type Sample<'a, T: Reloc + Send + std::fmt::Debug + 'a>: Sample<T>;
+    type ConsumerBuilderImpl;
 
-    fn find_service<I: Interface>(
+    fn find_service<I: Interface<RuntimeType = Self>>(
         &self,
         instance_specifier: InstanceSpecifier,
     ) -> impl ServiceDiscovery<I, Self>;
 
-    fn producer_builder<I: Interface>(
+    fn producer_builder<I: Interface<RuntimeType = Self>>(
         &self,
         instance_specifier: InstanceSpecifier,
     ) -> impl ProducerBuilder<I, Self, I::ProducerType>;
@@ -178,6 +187,9 @@ where
 pub trait Interface: Debug {
     type ProducerType: Producer<Interface = Self>;
     type ConsumerType: Consumer;
+    type RuntimeType: Runtime;
+
+    type BuilderType: BuilderT<Self::ConsumerType, Self::RuntimeType>;
 }
 
 pub trait OfferedProducer {
@@ -194,8 +206,8 @@ pub trait Producer {
     fn offer(self) -> Result<Self::OfferedProducer>;
 }
 
-pub trait Consumer : Sized{
-    type BuilderType: Builder<Self>;
+pub trait Consumer {
+   
 }
 
 pub trait ProducerBuilder<I: Interface, R: Runtime, P: Producer<Interface = I>>:
@@ -203,7 +215,7 @@ pub trait ProducerBuilder<I: Interface, R: Runtime, P: Producer<Interface = I>>:
 {
 }
 
-pub trait ServiceDiscovery<I: Interface, R: Runtime> {
+pub trait ServiceDiscovery<I: Interface<RuntimeType = R>, R: Runtime> {
     type ConsumerBuilder: ConsumerBuilder<I, R>;
     type ServiceEnumerator: IntoIterator<Item = Self::ConsumerBuilder>;
 
@@ -215,8 +227,8 @@ pub trait ConsumerDescriptor<R: Runtime> {
     fn get_instance_id(&self) -> usize; // TODO: Turn return type into separate type
 }
 
-pub trait ConsumerBuilder<I: Interface, R: Runtime>: ConsumerDescriptor<R> {
-    fn get_builder(&self) -> <I::ConsumerType as Consumer>::BuilderType;
+pub trait ConsumerBuilder<I: Interface, R: Runtime>: ConsumerDescriptor<R>  {
+    fn get_builder(&self) -> I::BuilderType;
 }
 
 pub trait Subscriber<T: Reloc + Send> {

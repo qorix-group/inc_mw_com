@@ -17,16 +17,16 @@ use com_api_runtime_mock::{SampleConsumerBuilder, MockRuntimeImpl, RuntimeBuilde
 fn main() {
     let runtime_builder = MockRuntimeBuilderImpl::new();
     let runtime = Builder::<MockRuntimeImpl>::build(runtime_builder).unwrap();
-    let producer_builder = runtime.producer_builder::<VehicleInterface>(InstanceSpecifier {
-        specifier: "My/Funk/ServiceName".to_string(),
-    });
-    let producer = producer_builder.build().unwrap();
-    let offered_producer = producer.offer().unwrap();
+    // let producer_builder = runtime.producer_builder::<VehicleInterface>(InstanceSpecifier {
+    //     specifier: "My/Funk/ServiceName".to_string(),
+    // });
+    // let producer = producer_builder.build().unwrap();
+    // let offered_producer = producer.offer().unwrap();
 
-    // Business logic
-    let uninit_sample = offered_producer.left_tire.allocate().unwrap();
-    let sample = uninit_sample.write(Tire {});
-    sample.send().unwrap();
+    // // Business logic
+    // let uninit_sample = offered_producer.left_tire.allocate().unwrap();
+    // let sample = uninit_sample.write(Tire {});
+    // sample.send().unwrap();
 
     // Create service discovery
     let consumer_discovery = runtime.find_service::<VehicleInterface>(InstanceSpecifier {
@@ -45,20 +45,20 @@ fn main() {
     let subscribed = consumer.left_tire.subscribe(3).unwrap();
 
     // Create sample buffer to be used during receive
-    let mut sample_buf = SampleContainer::new();
-    for _ in 0..10 {
-        let uninit_sample = offered_producer.left_tire.allocate().unwrap();
-        let sample = uninit_sample.write(Tire {});
-        sample.send().unwrap();
-        match subscribed.try_receive(&mut sample_buf, 1) {
-            Ok(0) => panic!("No sample received"),
-            Ok(x) => {
-                let sample = sample_buf.pop_front().unwrap();
-                println!("{} sample received: sample[0] = {:?}", x, *sample)
-            }
-            Err(e) => panic!("{:?}", e),
-        }
-    }
+    // let mut sample_buf = SampleContainer::new();
+    // for _ in 0..10 {
+    //     let uninit_sample = offered_producer.left_tire.allocate().unwrap();
+    //     let sample = uninit_sample.write(Tire {});
+    //     sample.send().unwrap();
+    //     match subscribed.try_receive(&mut sample_buf, 1) {
+    //         Ok(0) => panic!("No sample received"),
+    //         Ok(x) => {
+    //             let sample = sample_buf.pop_front().unwrap();
+    //             println!("{} sample received: sample[0] = {:?}", x, *sample)
+    //         }
+    //         Err(e) => panic!("{:?}", e),
+    //     }
+    // }
 }
 
 #[cfg(test)]

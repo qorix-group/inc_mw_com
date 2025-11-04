@@ -39,6 +39,10 @@ pub struct VehicleInterface {}
 impl Interface for VehicleInterface {
     type ProducerType = VehicleProducer;
     type ConsumerType = VehicleConsumer;
+
+    type RuntimeType = MockRuntimeImpl;
+
+    type BuilderType = SampleConsumerBuilder;
 }
 
 pub struct VehicleProducer {}
@@ -72,17 +76,17 @@ pub struct VehicleConsumer {
 }
 
 impl Consumer for VehicleConsumer {
-    type BuilderType = SampleConsumerBuilder<VehicleInterface>;
+    // type BuilderType = SampleConsumerBuilder<VehicleInterface>;
 }
 
 
-impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
-    fn build(self) -> com_api::Result<VehicleConsumer> {
-        todo!()
+impl BuilderT<VehicleConsumer, MockRuntimeImpl> for SampleConsumerBuilder {
+    fn build(self) -> Result<VehicleConsumer> {
+        todo!("dsadasdasdasdasdasdasda")
     }
-    
-    fn new() -> Self {
-        todo!()
+
+    fn new(i: &SampleConsumerBuilder) -> Self {
+        todo!("fffffffffffffffffffffff")
     }
 }
 

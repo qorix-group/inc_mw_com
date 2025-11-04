@@ -35,7 +35,7 @@ pub struct MockRuntimeImpl {}
 impl Runtime for MockRuntimeImpl {
     type Sample<'a, T: Reloc + Send + 'a + std::fmt::Debug> = Sample<'a, T>;
 
-    fn find_service<I: Interface>(
+    fn find_service<I: Interface<RuntimeType = Self>>(
         &self,
         _instance_specifier: InstanceSpecifier,
     ) -> impl ServiceDiscovery<I, Self> {
@@ -48,6 +48,8 @@ impl Runtime for MockRuntimeImpl {
     ) -> impl ProducerBuilder<I, Self, I::ProducerType> {
         SampleProducerBuilder::new(self, instance_specifier)
     }
+    
+    type ConsumerBuilderImpl = SampleConsumerBuilder;
 }
 
 struct MockEvent<T> {
@@ -325,21 +327,32 @@ impl<I> SampleConsumerDiscovery<I> {
         }
     }
 }
+use com_api_concept::BuilderT;
 
-impl<I: Interface> ConsumerBuilder<I, MockRuntimeImpl> for SampleConsumerBuilder<I> {
-    fn get_builder(&self) -> <<I as Interface>::ConsumerType as Consumer>::BuilderType {
-        <<I as Interface>::ConsumerType as Consumer>::BuilderType::new()
+impl<I: Interface<RuntimeType = MockRuntimeImpl>> ConsumerBuilder<I, MockRuntimeImpl> for SampleConsumerBuilder
+// where
+//     SampleConsumerBuilder: <MockRuntimeImpl as Runtime>::ConsumerBuilderImpl,
+{
+    fn get_builder(&self) -> I::BuilderType {
+        I::BuilderType::new(self)
     }
 }
-impl<I: Interface> ServiceDiscovery<I, MockRuntimeImpl> for SampleConsumerDiscovery<I>
-where
-    SampleConsumerBuilder<I>: ConsumerBuilder<I, MockRuntimeImpl>,
+
+impl<I: Interface<RuntimeType = MockRuntimeImpl>> ServiceDiscovery<I, MockRuntimeImpl> for SampleConsumerDiscovery<I>
+// where
+//     SampleConsumerBuilder<I>: ConsumerBuilder<I, MockRuntimeImpl>,
 {
-    type ConsumerBuilder = SampleConsumerBuilder<I>;
-    type ServiceEnumerator = Vec<SampleConsumerBuilder<I>>;
+    type ConsumerBuilder = SampleConsumerBuilder;
+    type ServiceEnumerator = Vec<SampleConsumerBuilder>;
 
     fn get_available_instances(&self) -> Result<Self::ServiceEnumerator> {
-        Ok(Vec::new())
+        let mut v = Vec::new();
+        v.push(SampleConsumerBuilder {
+            instance_specifier: InstanceSpecifier {
+                specifier: "My/Funk/ServiceName".to_string(),
+            },
+        });
+        Ok(v)
     }
 }
 
@@ -375,12 +388,12 @@ impl<I: Interface> Clone for SampleConsumerDescriptor<I> {
     }
 }
 
-pub struct SampleConsumerBuilder<I: Interface> {
+pub struct SampleConsumerBuilder {
     pub instance_specifier: InstanceSpecifier,
-    pub _interface: PhantomData<I>,
+    // pub _interface: PhantomData<I>,
 }
 
-impl<I: Interface> ConsumerDescriptor<MockRuntimeImpl> for SampleConsumerBuilder<I> {
+impl ConsumerDescriptor<MockRuntimeImpl> for SampleConsumerBuilder {
     fn get_instance_id(&self) -> usize {
         42
         //todo!()
