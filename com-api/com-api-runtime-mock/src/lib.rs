@@ -326,6 +326,11 @@ impl<I> SampleConsumerDiscovery<I> {
     }
 }
 
+impl<I: Interface> ConsumerBuilder<I, MockRuntimeImpl> for SampleConsumerBuilder<I> {
+    fn get_builder(&self) -> <<I as Interface>::ConsumerType as Consumer>::BuilderType {
+        <<I as Interface>::ConsumerType as Consumer>::BuilderType::new()
+    }
+}
 impl<I: Interface> ServiceDiscovery<I, MockRuntimeImpl> for SampleConsumerDiscovery<I>
 where
     SampleConsumerBuilder<I>: ConsumerBuilder<I, MockRuntimeImpl>,
@@ -388,6 +393,10 @@ impl Builder<MockRuntimeImpl> for RuntimeBuilderImpl {
     fn build(self) -> Result<MockRuntimeImpl> {
         Ok(MockRuntimeImpl {})
     }
+    
+    fn new() -> Self {
+        todo!()
+    }
 }
 
 /// Entry point for the default implementation for the com module of s-core
@@ -423,10 +432,18 @@ impl<I: Interface> Builder<I::ProducerType> for SampleProducerBuilder<I> {
     fn build(self) -> Result<I::ProducerType> {
         todo!()
     }
+    
+    fn new() -> Self {
+        todo!()
+    }
 }
 
 impl<I: Interface> Builder<I::ConsumerType> for SampleConsumerBuilder<I> {
     fn build(self) -> Result<I::ConsumerType> {
+        todo!()
+    }
+    
+    fn new() -> Self {
         todo!()
     }
 }

@@ -75,11 +75,6 @@ impl Consumer for VehicleConsumer {
     type BuilderType = SampleConsumerBuilder<VehicleInterface>;
 }
 
-impl ConsumerBuilder<VehicleInterface, MockRuntimeImpl> for SampleConsumerBuilder<VehicleInterface> {
-    fn get_builder(&self) -> <<VehicleInterface as Interface>::ConsumerType as Consumer>::BuilderType {
-        SampleConsumerBuilder::new()
-    }
-}
 
 // impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
 //     fn build(self) -> com_api::Result<VehicleConsumer> {

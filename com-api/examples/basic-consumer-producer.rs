@@ -11,8 +11,8 @@
 
 use com_api::*;
 use com_api_gen_mock::*;
-use com_api_runtime_lola::SampleConsumerBuilder;
-use com_api_runtime_mock::{MockRuntimeImpl, RuntimeBuilderImpl as MockRuntimeBuilderImpl};
+// use com_api_runtime_lola::SampleConsumerBuilder;
+use com_api_runtime_mock::{SampleConsumerBuilder, MockRuntimeImpl, RuntimeBuilderImpl as MockRuntimeBuilderImpl};
 
 fn main() {
     let runtime_builder = MockRuntimeBuilderImpl::new();

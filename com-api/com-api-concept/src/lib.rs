@@ -64,6 +64,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub trait Builder<Output>: Sized {
     /// TODO: Should this be &mut self so that this can be turned into a trait object?
     fn build(self) -> Result<Output>;
+
+    /// TODO what shall be input to this, ConsumerBuilder trait ?
+    fn new() -> Self;
 }
 
 /// This represents the com implementation and acts as a root for all types and objects provided by
@@ -191,7 +194,7 @@ pub trait Producer {
     fn offer(self) -> Result<Self::OfferedProducer>;
 }
 
-pub trait Consumer: Builder<Self> {
+pub trait Consumer : Sized{
     type BuilderType: Builder<Self>;
 }
 
