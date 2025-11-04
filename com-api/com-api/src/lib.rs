@@ -14,9 +14,8 @@
 //! The actual implementations are provided by the `com-api-runtime-mock` and `com-api-runtime-lola` crates.
 //! The user must enable one of these features to use the COM API.
 
-
 pub use com_api_concept::{
-    Builder, Consumer, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface,
-    OfferedProducer, Producer, ProducerBuilder, Reloc, Result, SampleContainer, SampleMaybeUninit,
-    SampleMut, ServiceDiscovery, Subscriber, Subscription,
+    Builder, Consumer, ConsumerBuilder, ConsumerDescriptor, Error, InstanceSpecifier, Interface,
+    OfferedProducer, Producer, ProducerBuilder, Reloc, Result, Runtime, RuntimeBuilder,
+    SampleContainer, SampleMaybeUninit, SampleMut, ServiceDiscovery, Subscriber, Subscription,
 };
