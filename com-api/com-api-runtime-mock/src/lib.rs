@@ -438,15 +438,7 @@ impl<I: Interface> Builder<I::ProducerType> for SampleProducerBuilder<I> {
     }
 }
 
-impl<I: Interface> Builder<I::ConsumerType> for SampleConsumerBuilder<I> {
-    fn build(self) -> Result<I::ConsumerType> {
-        todo!()
-    }
-    
-    fn new() -> Self {
-        todo!()
-    }
-}
+
 
 #[cfg(test)]
 mod test {

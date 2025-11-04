@@ -76,11 +76,15 @@ impl Consumer for VehicleConsumer {
 }
 
 
-// impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
-//     fn build(self) -> com_api::Result<VehicleConsumer> {
-//         todo!()
-//     }
-// }
+impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
+    fn build(self) -> com_api::Result<VehicleConsumer> {
+        todo!()
+    }
+    
+    fn new() -> Self {
+        todo!()
+    }
+}
 
 // impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
 //     fn build(self) -> com_api::Result<VehicleProducer> {
