@@ -21,9 +21,9 @@
 //! interface Another {}
 //!
 //! ```
-
+#![allow(unused_imports)]
 use com_api::*;
-use com_api_runtime_mock::{MockRuntimeImpl, SampleConsumerBuilder, SampleProducerBuilder};
+use com_api_runtime_mock::{MockRuntimeImpl, Sample, SampleConsumerBuilder, SampleProducerBuilder};
 
 #[derive(Debug)]
 pub struct Tire {}
@@ -32,14 +32,14 @@ unsafe impl Reloc for Tire {}
 pub struct Exhaust {}
 unsafe impl Reloc for Exhaust {}
 
+#[derive(Debug)]
 pub struct VehicleInterface {}
 
 /// Generic
-impl Interface for VehicleInterface {}
-
-pub struct AnotherInterface {}
-
-impl Interface for AnotherInterface {}
+impl Interface for VehicleInterface {
+    type ProducerType = VehicleProducer;
+    type ConsumerType = VehicleConsumer;
+}
 
 pub struct VehicleProducer {}
 
@@ -66,28 +66,29 @@ impl OfferedProducer for VehicleOfferedProducer {
     }
 }
 
-impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
-    fn build(self) -> com_api::Result<VehicleProducer> {
-        todo!()
-    }
-}
-
-impl ProducerBuilder<VehicleInterface, MockRuntimeImpl, VehicleProducer>
-    for SampleProducerBuilder<VehicleInterface>
-{
-}
-
 pub struct VehicleConsumer {
     pub left_tire: com_api_runtime_mock::SubscribableImpl<Tire>,
     pub exhaust: com_api_runtime_mock::SubscribableImpl<Exhaust>,
 }
 
-impl Consumer for VehicleConsumer {}
+impl Consumer for VehicleConsumer {
+    type BuilderType = SampleConsumerBuilder<VehicleInterface>;
+}
 
-impl ConsumerBuilder<VehicleInterface, MockRuntimeImpl> for SampleConsumerBuilder<VehicleInterface> {}
-
-impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
-    fn build(self) -> com_api::Result<VehicleConsumer> {
-        todo!()
+impl ConsumerBuilder<VehicleInterface, MockRuntimeImpl> for SampleConsumerBuilder<VehicleInterface> {
+    fn get_builder(&self) -> <<VehicleInterface as Interface>::ConsumerType as Consumer>::BuilderType {
+        SampleConsumerBuilder::new()
     }
 }
+
+// impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
+//     fn build(self) -> com_api::Result<VehicleConsumer> {
+//         todo!()
+//     }
+// }
+
+// impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
+//     fn build(self) -> com_api::Result<VehicleProducer> {
+//         todo!()
+//     }
+// }

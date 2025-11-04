@@ -12,7 +12,7 @@
 //! This crate defines the concepts and traits of the COM API. It does not provide any concrete
 //! implementations. It is meant to be used as a common interface for different implementations
 //! of the COM API, e.g., for different IPC backends.
-//! 
+//!
 //! # API Design principles
 //!
 //! - We stick to the builder pattern down to a single service (TODO: Should this be introduced to the C++ API?)
@@ -61,15 +61,25 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Generic trait for all "factory-like" types
-pub trait Builder<Output> {
+pub trait Builder<Output>: Sized {
     /// TODO: Should this be &mut self so that this can be turned into a trait object?
     fn build(self) -> Result<Output>;
 }
 
 /// This represents the com implementation and acts as a root for all types and objects provided by
 /// the implementation.
-pub trait Runtime {
+pub trait Runtime: Sized {
     type Sample<'a, T: Reloc + Send + std::fmt::Debug + 'a>: Sample<T>;
+
+    fn find_service<I: Interface>(
+        &self,
+        instance_specifier: InstanceSpecifier,
+    ) -> impl ServiceDiscovery<I, Self>;
+
+    fn producer_builder<I: Interface>(
+        &self,
+        instance_specifier: InstanceSpecifier,
+    ) -> impl ProducerBuilder<I, Self, I::ProducerType>;
 }
 
 pub trait RuntimeBuilder<B>: Builder<B>
@@ -162,7 +172,10 @@ where
     fn write(self, value: T) -> Self::SampleMut;
 }
 
-pub trait Interface {}
+pub trait Interface: Debug {
+    type ProducerType: Producer<Interface = Self>;
+    type ConsumerType: Consumer;
+}
 
 pub trait OfferedProducer {
     type Interface: Interface;
@@ -178,7 +191,9 @@ pub trait Producer {
     fn offer(self) -> Result<Self::OfferedProducer>;
 }
 
-pub trait Consumer {}
+pub trait Consumer: Builder<Self> {
+    type BuilderType: Builder<Self>;
+}
 
 pub trait ProducerBuilder<I: Interface, R: Runtime, P: Producer<Interface = I>>:
     Builder<P>
@@ -197,7 +212,9 @@ pub trait ConsumerDescriptor<R: Runtime> {
     fn get_instance_id(&self) -> usize; // TODO: Turn return type into separate type
 }
 
-pub trait ConsumerBuilder<I: Interface, R: Runtime>: ConsumerDescriptor<R> {}
+pub trait ConsumerBuilder<I: Interface, R: Runtime>: ConsumerDescriptor<R> {
+    fn get_builder(&self) -> <I::ConsumerType as Consumer>::BuilderType;
+}
 
 pub trait Subscriber<T: Reloc + Send> {
     type Subscription: Subscription<T>;

@@ -21,7 +21,7 @@
 //! interface Another {}
 //!
 //! ```
-
+#![allow(unused_imports)]
 use com_api::*;
 use com_api_runtime_lola::{LolaRuntimeImpl, SampleConsumerBuilder, SampleProducerBuilder};
 
@@ -32,14 +32,13 @@ unsafe impl Reloc for Tire {}
 pub struct Exhaust {}
 unsafe impl Reloc for Exhaust {}
 
+#[derive(Debug)]
 pub struct VehicleInterface {}
 
 /// Generic
-impl Interface for VehicleInterface {}
-
-pub struct AnotherInterface {}
-
-impl Interface for AnotherInterface {}
+impl Interface for VehicleInterface {
+    type ProducerType = VehicleProducer;
+}
 
 pub struct VehicleProducer {}
 
@@ -66,17 +65,6 @@ impl OfferedProducer for VehicleOfferedProducer {
     }
 }
 
-impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
-    fn build(self) -> com_api::Result<VehicleProducer> {
-        todo!()
-    }
-}
-
-impl ProducerBuilder<VehicleInterface, LolaRuntimeImpl, VehicleProducer>
-    for SampleProducerBuilder<VehicleInterface>
-{
-}
-
 pub struct VehicleConsumer {
     pub left_tire: com_api_runtime_lola::SubscribableImpl<Tire>,
     pub exhaust: com_api_runtime_lola::SubscribableImpl<Exhaust>,
@@ -84,10 +72,14 @@ pub struct VehicleConsumer {
 
 impl Consumer for VehicleConsumer {}
 
-impl ConsumerBuilder<VehicleInterface, LolaRuntimeImpl> for SampleConsumerBuilder<VehicleInterface> {}
+// impl<I: Interface> Builder<VehicleConsumer> for SampleConsumerBuilder<I> {
+//     fn build(self) -> com_api::Result<VehicleConsumer> {
+//         todo!()
+//     }
+// }
 
-impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
-    fn build(self) -> com_api::Result<VehicleConsumer> {
-        todo!()
-    }
-}
+// impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
+//     fn build(self) -> com_api::Result<VehicleProducer> {
+//         todo!()
+//     }
+// }

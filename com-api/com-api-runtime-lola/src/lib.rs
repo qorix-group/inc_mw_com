@@ -23,32 +23,26 @@ use std::path::Path;
 use std::sync::atomic::AtomicUsize;
 
 use com_api_concept::{
-    Builder, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface, Reloc, Runtime,
-    SampleContainer, ServiceDiscovery, Subscriber, Subscription,
+    Builder, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface, ProducerBuilder,
+    Reloc, Runtime, SampleContainer, ServiceDiscovery, Subscriber, Subscription,
 };
 
 pub struct LolaRuntimeImpl {}
 
 impl Runtime for LolaRuntimeImpl {
     type Sample<'a, T: Reloc + Send + 'a + std::fmt::Debug> = Sample<'a, T>;
-}
 
-impl LolaRuntimeImpl {
-    // TODO: Any chance that these can be moved to a trait so that this becomes more testable?
-    // If yes, this trait is certainly located here since
-    pub fn find_service<I: Interface>(
+    fn find_service<I: Interface>(
         &self,
         _instance_specifier: InstanceSpecifier,
-    ) -> SampleConsumerDiscovery<I> {
-        SampleConsumerDiscovery {
-            _interface: PhantomData,
-        }
+    ) -> impl ServiceDiscovery<I, Self> {
+        SampleConsumerDiscovery::new(self, _instance_specifier)
     }
 
-    pub fn producer_builder<I: Interface>(
+    fn producer_builder<I: Interface + std::fmt::Debug>(
         &self,
         instance_specifier: InstanceSpecifier,
-    ) -> SampleProducerBuilder<I> {
+    ) -> impl ProducerBuilder<I, Self, I::ProducerType> {
         SampleProducerBuilder::new(self, instance_specifier)
     }
 }
@@ -206,7 +200,7 @@ where
         }
     }
 
-    unsafe fn assume_init(self) -> SampleMut<'a, T> { 
+    unsafe fn assume_init(self) -> SampleMut<'a, T> {
         SampleMut {
             data: unsafe { self.data.assume_init() },
             _lifetime: PhantomData,
@@ -355,6 +349,12 @@ impl<I: Interface> SampleProducerBuilder<I> {
     }
 }
 
+impl<I: Interface + std::fmt::Debug>
+    ProducerBuilder<I, LolaRuntimeImpl, <I as Interface>::ProducerType>
+    for SampleProducerBuilder<I>
+{
+}
+
 pub struct SampleConsumerDescriptor<I: Interface> {
     _interface: PhantomData<I>,
 }
@@ -377,6 +377,8 @@ impl<I: Interface> ConsumerDescriptor<LolaRuntimeImpl> for SampleConsumerBuilder
         todo!()
     }
 }
+
+impl<I: Interface> ConsumerBuilder<I, LolaRuntimeImpl> for SampleConsumerBuilder<I> {}
 
 pub struct RuntimeBuilderImpl {}
 
@@ -403,6 +405,12 @@ impl RuntimeBuilderImpl {
     /// Creates a new instance of the default implementation of the com layer
     pub fn new() -> Self {
         Self {}
+    }
+}
+
+impl<I: Interface> Builder<I::ProducerType> for SampleProducerBuilder<I> {
+    fn build(self) -> com_api_concept::Result<I::ProducerType> {
+        todo!()
     }
 }
 

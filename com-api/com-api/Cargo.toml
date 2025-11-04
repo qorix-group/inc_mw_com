@@ -8,4 +8,4 @@ license = "Apache-2.0"
 [dependencies]
 com-api-concept = { workspace = true }
 com-api-runtime-mock = { workspace = true }
-com-api-runtime-lola = { workspace = true }
+# com-api-runtime-lola = { workspace = true }
