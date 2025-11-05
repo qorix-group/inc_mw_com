@@ -8,9 +8,9 @@ license = "Apache-2.0"
 [dependencies]
 com-api = { workspace = true }
 com-api-gen-mock = { path = "com-api-gen-mock" }
-# com-api-gen-lola = { path = "com-api-gen-lola" }
+com-api-gen-lola = { path = "com-api-gen-lola" }
 com-api-runtime-mock = { workspace = true }
-# com-api-runtime-lola = { workspace = true }
+com-api-runtime-lola = { workspace = true }
 tokio = { version = "~1.43", features = ["rt-multi-thread", "macros", "test-util"] }
 
 [[example]]

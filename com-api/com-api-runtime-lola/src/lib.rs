@@ -11,6 +11,8 @@
 
 //! This crate provides a LoLa implementation of the COM API for testing purposes.
 //! It is meant to be used in conjunction with the `com-api` crate.
+//! The LoLa implementation does not perform any real IPC and is not meant to be used in production.
+//! It is only meant to be used for testing and development.
 
 #![allow(dead_code)]
 
@@ -23,8 +25,9 @@ use std::path::Path;
 use std::sync::atomic::AtomicUsize;
 
 use com_api_concept::{
-    Builder, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface, ProducerBuilder,
-    Reloc, Runtime, SampleContainer, ServiceDiscovery, Subscriber, Subscription,
+    Builder, BuilderT, BuilderT2, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier,
+    Interface, ProducerBuilder, Reloc, Result, Runtime, RuntimeBuilder, SampleContainer,
+    ServiceDiscovery, Subscriber, Subscription,
 };
 
 pub struct LolaRuntimeImpl {}
@@ -32,19 +35,22 @@ pub struct LolaRuntimeImpl {}
 impl Runtime for LolaRuntimeImpl {
     type Sample<'a, T: Reloc + Send + 'a + std::fmt::Debug> = Sample<'a, T>;
 
-    fn find_service<I: Interface>(
+    fn find_service<I: Interface<RuntimeType = Self>>(
         &self,
         _instance_specifier: InstanceSpecifier,
     ) -> impl ServiceDiscovery<I, Self> {
         SampleConsumerDiscovery::new(self, _instance_specifier)
     }
 
-    fn producer_builder<I: Interface + std::fmt::Debug>(
+    fn producer_builder<I: Interface<RuntimeType = Self> + std::fmt::Debug>(
         &self,
         instance_specifier: InstanceSpecifier,
     ) -> impl ProducerBuilder<I, Self, I::ProducerType> {
         SampleProducerBuilder::new(self, instance_specifier)
     }
+
+    type ConsumerBuilderImpl = SampleConsumerBuilder;
+    type ProducerBuilderImpl = SampleProducerBuilder;
 }
 
 struct LolaEvent<T> {
@@ -221,7 +227,7 @@ impl<T> Default for SubscribableImpl<T> {
 impl<T: Reloc + Send> Subscriber<T> for SubscribableImpl<T> {
     type Subscription = SubscriberImpl<T>;
 
-    fn subscribe(self, _max_num_samples: usize) -> com_api_concept::Result<Self::Subscription> {
+    fn subscribe(self, _max_num_samples: usize) -> Result<Self::Subscription> {
         Ok(SubscriberImpl::new())
     }
 }
@@ -267,7 +273,7 @@ where
         &'a self,
         _scratch: &'_ mut SampleContainer<Self::Sample<'a>>,
         _max_samples: usize,
-    ) -> com_api_concept::Result<usize> {
+    ) -> Result<usize> {
         todo!()
     }
 
@@ -277,7 +283,7 @@ where
         _scratch: &'_ mut SampleContainer<Self::Sample<'a>>,
         _new_samples: usize,
         _max_samples: usize,
-    ) -> impl Future<Output = com_api_concept::Result<usize>> + Send {
+    ) -> impl Future<Output = Result<usize>> + Send {
         async { todo!() }
     }
 }
@@ -303,7 +309,7 @@ where
         Self { _data: PhantomData }
     }
 
-    pub fn allocate<'a>(&'a self) -> com_api_concept::Result<SampleMaybeUninit<'a, T>> {
+    pub fn allocate<'a>(&'a self) -> Result<SampleMaybeUninit<'a, T>> {
         Ok(SampleMaybeUninit {
             data: MaybeUninit::uninit(),
             _lifetime: PhantomData,
@@ -323,36 +329,47 @@ impl<I> SampleConsumerDiscovery<I> {
     }
 }
 
-impl<I: Interface> ServiceDiscovery<I, LolaRuntimeImpl> for SampleConsumerDiscovery<I>
-where
-    SampleConsumerBuilder<I>: ConsumerBuilder<I, LolaRuntimeImpl>,
+impl<I: Interface<RuntimeType = LolaRuntimeImpl>> ConsumerBuilder<I, LolaRuntimeImpl>
+    for SampleConsumerBuilder
 {
-    type ConsumerBuilder = SampleConsumerBuilder<I>;
-    type ServiceEnumerator = Vec<SampleConsumerBuilder<I>>;
-
-    fn get_available_instances(&self) -> com_api_concept::Result<Self::ServiceEnumerator> {
-        Ok(Vec::new())
+    fn get_builder(&self) -> I::ConsumerBuilderType {
+        I::ConsumerBuilderType::new(self)
     }
 }
 
-pub struct SampleProducerBuilder<I: Interface> {
+impl<I: Interface<RuntimeType = LolaRuntimeImpl>> ServiceDiscovery<I, LolaRuntimeImpl>
+    for SampleConsumerDiscovery<I>
+{
+    type ConsumerBuilder = SampleConsumerBuilder;
+    type ServiceEnumerator = Vec<SampleConsumerBuilder>;
+
+    fn get_available_instances(&self) -> Result<Self::ServiceEnumerator> {
+        let mut v = Vec::new();
+        v.push(SampleConsumerBuilder {
+            instance_specifier: InstanceSpecifier {
+                specifier: "My/Funk/ServiceName".to_string(),
+            },
+        });
+        Ok(v)
+    }
+}
+
+pub struct SampleProducerBuilder {
     instance_specifier: InstanceSpecifier,
-    _interface: PhantomData<I>,
 }
 
-impl<I: Interface> SampleProducerBuilder<I> {
+impl SampleProducerBuilder {
     fn new(_runtime: &LolaRuntimeImpl, instance_specifier: InstanceSpecifier) -> Self {
-        Self {
-            instance_specifier,
-            _interface: PhantomData,
-        }
+        Self { instance_specifier }
     }
 }
 
-impl<I: Interface + std::fmt::Debug>
-    ProducerBuilder<I, LolaRuntimeImpl, <I as Interface>::ProducerType>
-    for SampleProducerBuilder<I>
+impl<I: Interface<RuntimeType = LolaRuntimeImpl> + std::fmt::Debug>
+    ProducerBuilder<I, LolaRuntimeImpl, I::ProducerType> for SampleProducerBuilder
 {
+    fn get_builder(&self) -> I::ProducerBuilderType {
+        I::ProducerBuilderType::new(self)
+    }
 }
 
 pub struct SampleConsumerDescriptor<I: Interface> {
@@ -367,29 +384,31 @@ impl<I: Interface> Clone for SampleConsumerDescriptor<I> {
     }
 }
 
-pub struct SampleConsumerBuilder<I: Interface> {
-    instance_specifier: InstanceSpecifier,
-    _interface: PhantomData<I>,
+pub struct SampleConsumerBuilder {
+    pub instance_specifier: InstanceSpecifier,
 }
 
-impl<I: Interface> ConsumerDescriptor<LolaRuntimeImpl> for SampleConsumerBuilder<I> {
+impl ConsumerDescriptor<LolaRuntimeImpl> for SampleConsumerBuilder {
     fn get_instance_id(&self) -> usize {
-        todo!()
+        42
+        //todo!()
     }
 }
-
-impl<I: Interface> ConsumerBuilder<I, LolaRuntimeImpl> for SampleConsumerBuilder<I> {}
 
 pub struct RuntimeBuilderImpl {}
 
 impl Builder<LolaRuntimeImpl> for RuntimeBuilderImpl {
-    fn build(self) -> com_api_concept::Result<LolaRuntimeImpl> {
+    fn build(self) -> Result<LolaRuntimeImpl> {
         Ok(LolaRuntimeImpl {})
+    }
+
+    fn new() -> Self {
+        todo!()
     }
 }
 
 /// Entry point for the default implementation for the com module of s-core
-impl com_api_concept::RuntimeBuilder<LolaRuntimeImpl> for RuntimeBuilderImpl {
+impl RuntimeBuilder<LolaRuntimeImpl> for RuntimeBuilderImpl {
     fn load_config(&mut self, _config: &Path) -> &mut Self {
         self
     }
@@ -405,12 +424,6 @@ impl RuntimeBuilderImpl {
     /// Creates a new instance of the default implementation of the com layer
     pub fn new() -> Self {
         Self {}
-    }
-}
-
-impl<I: Interface> Builder<I::ProducerType> for SampleProducerBuilder<I> {
-    fn build(self) -> com_api_concept::Result<I::ProducerType> {
-        todo!()
     }
 }
 

@@ -77,11 +77,20 @@ pub trait BuilderT<Output, RuntimeT: Runtime>: Sized {
     fn new(i: &RuntimeT::ConsumerBuilderImpl) -> Self;
 }
 
+pub trait BuilderT2<Output, RuntimeT: Runtime>: Sized {
+    /// TODO: Should this be &mut self so that this can be turned into a trait object?
+    fn build(self) -> Result<Output>;
+
+    /// TODO what shall be input to this, ConsumerBuilder trait ?
+    fn new(i: &RuntimeT::ProducerBuilderImpl) -> Self;
+}
+
 /// This represents the com implementation and acts as a root for all types and objects provided by
 /// the implementation.
 pub trait Runtime: Sized {
     type Sample<'a, T: Reloc + Send + std::fmt::Debug + 'a>: Sample<T>;
     type ConsumerBuilderImpl;
+    type ProducerBuilderImpl;
 
     fn find_service<I: Interface<RuntimeType = Self>>(
         &self,
@@ -189,7 +198,8 @@ pub trait Interface: Debug {
     type ConsumerType: Consumer;
     type RuntimeType: Runtime;
 
-    type BuilderType: BuilderT<Self::ConsumerType, Self::RuntimeType>;
+    type ConsumerBuilderType: BuilderT<Self::ConsumerType, Self::RuntimeType>;
+    type ProducerBuilderType: BuilderT2<Self::ProducerType, Self::RuntimeType>;
 }
 
 pub trait OfferedProducer {
@@ -206,13 +216,10 @@ pub trait Producer {
     fn offer(self) -> Result<Self::OfferedProducer>;
 }
 
-pub trait Consumer {
-   
-}
+pub trait Consumer {}
 
-pub trait ProducerBuilder<I: Interface, R: Runtime, P: Producer<Interface = I>>:
-    Builder<P>
-{
+pub trait ProducerBuilder<I: Interface, R: Runtime, P: Producer<Interface = I>> {
+    fn get_builder(&self) -> I::ProducerBuilderType;
 }
 
 pub trait ServiceDiscovery<I: Interface<RuntimeType = R>, R: Runtime> {
@@ -227,8 +234,8 @@ pub trait ConsumerDescriptor<R: Runtime> {
     fn get_instance_id(&self) -> usize; // TODO: Turn return type into separate type
 }
 
-pub trait ConsumerBuilder<I: Interface, R: Runtime>: ConsumerDescriptor<R>  {
-    fn get_builder(&self) -> I::BuilderType;
+pub trait ConsumerBuilder<I: Interface, R: Runtime>: ConsumerDescriptor<R> {
+    fn get_builder(&self) -> I::ConsumerBuilderType;
 }
 
 pub trait Subscriber<T: Reloc + Send> {

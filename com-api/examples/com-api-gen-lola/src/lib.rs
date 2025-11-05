@@ -38,6 +38,12 @@ pub struct VehicleInterface {}
 /// Generic
 impl Interface for VehicleInterface {
     type ProducerType = VehicleProducer;
+    type ConsumerType = VehicleConsumer;
+
+    type RuntimeType = LolaRuntimeImpl;
+
+    type ConsumerBuilderType = SampleConsumerBuilder;
+    type ProducerBuilderType = SampleProducerBuilder;
 }
 
 pub struct VehicleProducer {}
@@ -72,14 +78,22 @@ pub struct VehicleConsumer {
 
 impl Consumer for VehicleConsumer {}
 
-// impl<I: Interface> Builder<VehicleConsumer> for SampleConsumerBuilder<I> {
-//     fn build(self) -> com_api::Result<VehicleConsumer> {
-//         todo!()
-//     }
-// }
+impl BuilderT<VehicleConsumer, LolaRuntimeImpl> for SampleConsumerBuilder {
+    fn build(self) -> Result<VehicleConsumer> {
+        todo!("SampleConsumerBuilder::build for VehicleConsumer")
+    }
 
-// impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
-//     fn build(self) -> com_api::Result<VehicleProducer> {
-//         todo!()
-//     }
-// }
+    fn new(i: &SampleConsumerBuilder) -> Self {
+        todo!("SampleConsumerBuilder::new for VehicleConsumer")
+    }
+}
+
+impl BuilderT2<VehicleProducer, LolaRuntimeImpl> for SampleProducerBuilder {
+    fn build(self) -> Result<VehicleProducer> {
+        todo!("SampleProducerBuilder::build for VehicleProducer")
+    }
+
+    fn new(i: &SampleProducerBuilder) -> Self {
+        todo!("SampleProducerBuilder::new for VehicleProducer")
+    }
+}

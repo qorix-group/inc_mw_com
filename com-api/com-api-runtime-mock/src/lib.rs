@@ -25,9 +25,9 @@ use std::path::Path;
 use std::sync::atomic::AtomicUsize;
 
 use com_api_concept::{
-    Builder, Consumer, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface,
-    ProducerBuilder, Reloc, Result, Runtime, RuntimeBuilder, SampleContainer, ServiceDiscovery,
-    Subscriber, Subscription,
+    Builder, BuilderT, BuilderT2, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier,
+    Interface, ProducerBuilder, Reloc, Result, Runtime, RuntimeBuilder, SampleContainer,
+    ServiceDiscovery, Subscriber, Subscription,
 };
 
 pub struct MockRuntimeImpl {}
@@ -42,14 +42,15 @@ impl Runtime for MockRuntimeImpl {
         SampleConsumerDiscovery::new(self, _instance_specifier)
     }
 
-    fn producer_builder<I: Interface + std::fmt::Debug>(
+    fn producer_builder<I: Interface<RuntimeType = Self> + std::fmt::Debug>(
         &self,
         instance_specifier: InstanceSpecifier,
     ) -> impl ProducerBuilder<I, Self, I::ProducerType> {
         SampleProducerBuilder::new(self, instance_specifier)
     }
-    
+
     type ConsumerBuilderImpl = SampleConsumerBuilder;
+    type ProducerBuilderImpl = SampleProducerBuilder;
 }
 
 struct MockEvent<T> {
@@ -327,20 +328,17 @@ impl<I> SampleConsumerDiscovery<I> {
         }
     }
 }
-use com_api_concept::BuilderT;
 
-impl<I: Interface<RuntimeType = MockRuntimeImpl>> ConsumerBuilder<I, MockRuntimeImpl> for SampleConsumerBuilder
-// where
-//     SampleConsumerBuilder: <MockRuntimeImpl as Runtime>::ConsumerBuilderImpl,
+impl<I: Interface<RuntimeType = MockRuntimeImpl>> ConsumerBuilder<I, MockRuntimeImpl>
+    for SampleConsumerBuilder
 {
-    fn get_builder(&self) -> I::BuilderType {
-        I::BuilderType::new(self)
+    fn get_builder(&self) -> I::ConsumerBuilderType {
+        I::ConsumerBuilderType::new(self)
     }
 }
 
-impl<I: Interface<RuntimeType = MockRuntimeImpl>> ServiceDiscovery<I, MockRuntimeImpl> for SampleConsumerDiscovery<I>
-// where
-//     SampleConsumerBuilder<I>: ConsumerBuilder<I, MockRuntimeImpl>,
+impl<I: Interface<RuntimeType = MockRuntimeImpl>> ServiceDiscovery<I, MockRuntimeImpl>
+    for SampleConsumerDiscovery<I>
 {
     type ConsumerBuilder = SampleConsumerBuilder;
     type ServiceEnumerator = Vec<SampleConsumerBuilder>;
@@ -356,24 +354,22 @@ impl<I: Interface<RuntimeType = MockRuntimeImpl>> ServiceDiscovery<I, MockRuntim
     }
 }
 
-pub struct SampleProducerBuilder<I: Interface> {
+pub struct SampleProducerBuilder {
     instance_specifier: InstanceSpecifier,
-    _interface: PhantomData<I>,
 }
 
-impl<I: Interface> SampleProducerBuilder<I> {
+impl SampleProducerBuilder {
     fn new(_runtime: &MockRuntimeImpl, instance_specifier: InstanceSpecifier) -> Self {
-        Self {
-            instance_specifier,
-            _interface: PhantomData,
-        }
+        Self { instance_specifier }
     }
 }
 
-impl<I: Interface + std::fmt::Debug>
-    ProducerBuilder<I, MockRuntimeImpl, <I as Interface>::ProducerType>
-    for SampleProducerBuilder<I>
+impl<I: Interface<RuntimeType = MockRuntimeImpl> + std::fmt::Debug>
+    ProducerBuilder<I, MockRuntimeImpl, I::ProducerType> for SampleProducerBuilder
 {
+    fn get_builder(&self) -> I::ProducerBuilderType {
+        I::ProducerBuilderType::new(self)
+    }
 }
 
 pub struct SampleConsumerDescriptor<I: Interface> {
@@ -390,7 +386,6 @@ impl<I: Interface> Clone for SampleConsumerDescriptor<I> {
 
 pub struct SampleConsumerBuilder {
     pub instance_specifier: InstanceSpecifier,
-    // pub _interface: PhantomData<I>,
 }
 
 impl ConsumerDescriptor<MockRuntimeImpl> for SampleConsumerBuilder {
@@ -406,7 +401,7 @@ impl Builder<MockRuntimeImpl> for RuntimeBuilderImpl {
     fn build(self) -> Result<MockRuntimeImpl> {
         Ok(MockRuntimeImpl {})
     }
-    
+
     fn new() -> Self {
         todo!()
     }
@@ -431,27 +426,6 @@ impl RuntimeBuilderImpl {
         Self {}
     }
 }
-
-// impl<I: Interface> ConsumerBuilder<I, MockRuntimeImpl> for SampleConsumerBuilder<I> {
-//     fn get_builder(&self) -> <<I as Interface>::ConsumerType as Consumer>::BuilderType {
-//         Self {
-//             instance_specifier: self.instance_specifier.clone(),
-//             _interface: PhantomData,
-//         }
-//     }
-// }
-
-impl<I: Interface> Builder<I::ProducerType> for SampleProducerBuilder<I> {
-    fn build(self) -> Result<I::ProducerType> {
-        todo!()
-    }
-    
-    fn new() -> Self {
-        todo!()
-    }
-}
-
-
 
 #[cfg(test)]
 mod test {

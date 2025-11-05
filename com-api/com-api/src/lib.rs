@@ -15,7 +15,7 @@
 //! The user must enable one of these features to use the COM API.
 
 pub use com_api_concept::{
-    Builder, Consumer, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface,
-    OfferedProducer, Producer, ProducerBuilder, Reloc, Result, Runtime, RuntimeBuilder,
-    SampleContainer, SampleMaybeUninit, SampleMut, ServiceDiscovery, Subscriber, Subscription, BuilderT
+    Builder, BuilderT, BuilderT2, Consumer, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier,
+    Interface, OfferedProducer, Producer, ProducerBuilder, Reloc, Result, Runtime, RuntimeBuilder,
+    SampleContainer, SampleMaybeUninit, SampleMut, ServiceDiscovery, Subscriber, Subscription,
 };

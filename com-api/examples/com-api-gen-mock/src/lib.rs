@@ -42,7 +42,8 @@ impl Interface for VehicleInterface {
 
     type RuntimeType = MockRuntimeImpl;
 
-    type BuilderType = SampleConsumerBuilder;
+    type ConsumerBuilderType = SampleConsumerBuilder;
+    type ProducerBuilderType = SampleProducerBuilder;
 }
 
 pub struct VehicleProducer {}
@@ -75,23 +76,24 @@ pub struct VehicleConsumer {
     pub exhaust: com_api_runtime_mock::SubscribableImpl<Exhaust>,
 }
 
-impl Consumer for VehicleConsumer {
-    // type BuilderType = SampleConsumerBuilder<VehicleInterface>;
-}
-
+impl Consumer for VehicleConsumer {}
 
 impl BuilderT<VehicleConsumer, MockRuntimeImpl> for SampleConsumerBuilder {
     fn build(self) -> Result<VehicleConsumer> {
-        todo!("dsadasdasdasdasdasdasda")
+        todo!("SampleConsumerBuilder::build for VehicleConsumer")
     }
 
     fn new(i: &SampleConsumerBuilder) -> Self {
-        todo!("fffffffffffffffffffffff")
+        todo!("SampleConsumerBuilder::new for VehicleConsumer")
     }
 }
 
-// impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
-//     fn build(self) -> com_api::Result<VehicleProducer> {
-//         todo!()
-//     }
-// }
+impl BuilderT2<VehicleProducer, MockRuntimeImpl> for SampleProducerBuilder {
+    fn build(self) -> Result<VehicleProducer> {
+        todo!("SampleProducerBuilder::build for VehicleProducer")
+    }
+
+    fn new(i: &SampleProducerBuilder) -> Self {
+        todo!("SampleProducerBuilder::new for VehicleProducer")
+    }
+}
