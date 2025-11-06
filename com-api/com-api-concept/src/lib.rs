@@ -64,33 +64,15 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub trait Builder<Output>: Sized {
     /// TODO: Should this be &mut self so that this can be turned into a trait object?
     fn build(self) -> Result<Output>;
-
-    /// TODO what shall be input to this, ConsumerBuilder trait ?
-    fn new() -> Self;
 }
 
-pub trait BuilderT<Output, RuntimeT: Runtime>: Sized {
-    /// TODO: Should this be &mut self so that this can be turned into a trait object?
-    fn build(self) -> Result<Output>;
-
-    /// TODO what shall be input to this, ConsumerBuilder trait ?
-    fn new(i: &RuntimeT::ConsumerBuilderImpl) -> Self;
-}
-
-pub trait BuilderT2<Output, RuntimeT: Runtime>: Sized {
-    /// TODO: Should this be &mut self so that this can be turned into a trait object?
-    fn build(self) -> Result<Output>;
-
-    /// TODO what shall be input to this, ConsumerBuilder trait ?
-    fn new(i: &RuntimeT::ProducerBuilderImpl) -> Self;
-}
 
 /// This represents the com implementation and acts as a root for all types and objects provided by
 /// the implementation.
 pub trait Runtime: Sized {
     type Sample<'a, T: Reloc + Send + std::fmt::Debug + 'a>: Sample<T>;
-    type ConsumerBuilderImpl;
-    type ProducerBuilderImpl;
+    type ConsumerBuilderImpl; // HERE: Associated type for ConsumerBuilder implementation
+    type ProducerBuilderImpl; // HERE: Associated type for ProducerBuilder implementation
 
     fn find_service<I: Interface<RuntimeType = Self>>(
         &self,
@@ -194,12 +176,10 @@ where
 }
 
 pub trait Interface: Debug {
-    type ProducerType: Producer<Interface = Self>;
-    type ConsumerType: Consumer;
+    type ProducerType: Producer<Interface = Self> + TryFrom<<Self::RuntimeType as Runtime>::ProducerBuilderImpl, Error = Error>;
+    type ConsumerType: Consumer + TryFrom<<Self::RuntimeType as Runtime>::ConsumerBuilderImpl, Error = Error>;
     type RuntimeType: Runtime;
 
-    type ConsumerBuilderType: BuilderT<Self::ConsumerType, Self::RuntimeType>;
-    type ProducerBuilderType: BuilderT2<Self::ProducerType, Self::RuntimeType>;
 }
 
 pub trait OfferedProducer {
@@ -219,7 +199,7 @@ pub trait Producer {
 pub trait Consumer {}
 
 pub trait ProducerBuilder<I: Interface, R: Runtime, P: Producer<Interface = I>> {
-    fn get_builder(&self) -> I::ProducerBuilderType;
+    fn build(self) -> Result<I::ProducerType>;
 }
 
 pub trait ServiceDiscovery<I: Interface<RuntimeType = R>, R: Runtime> {
@@ -234,8 +214,9 @@ pub trait ConsumerDescriptor<R: Runtime> {
     fn get_instance_id(&self) -> usize; // TODO: Turn return type into separate type
 }
 
+// TODO: I would drop ConsumerBuilder and implement into ConsumerType on ConsumerBuilder
 pub trait ConsumerBuilder<I: Interface, R: Runtime>: ConsumerDescriptor<R> {
-    fn get_builder(&self) -> I::ConsumerBuilderType;
+    fn build(self) -> Result<I::ConsumerType>;
 }
 
 pub trait Subscriber<T: Reloc + Send> {

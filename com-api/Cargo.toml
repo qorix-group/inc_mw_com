@@ -19,5 +19,5 @@ license = "Apache-2.0"
 com-api = { path = "com-api"}
 com-api-concept = { path = "com-api-concept"}
 com-api-runtime-mock = { path = "com-api-runtime-mock"}
-com-api-runtime-lola = { path = "com-api-runtime-lola"}
+# com-api-runtime-lola = { path = "com-api-runtime-lola"}
 com-api-gen = { path = "examples/com-api-gen"}

@@ -43,7 +43,6 @@ name = "com-api"
 version = "0.1.0"
 dependencies = [
  "com-api-concept",
- "com-api-runtime-lola",
  "com-api-runtime-mock",
 ]
 
@@ -56,19 +55,9 @@ name = "com-api-examples"
 version = "0.1.0"
 dependencies = [
  "com-api",
- "com-api-gen-lola",
  "com-api-gen-mock",
- "com-api-runtime-lola",
  "com-api-runtime-mock",
  "tokio",
-]
-
-[[package]]
-name = "com-api-gen-lola"
-version = "0.1.0"
-dependencies = [
- "com-api",
- "com-api-runtime-lola",
 ]
 
 [[package]]

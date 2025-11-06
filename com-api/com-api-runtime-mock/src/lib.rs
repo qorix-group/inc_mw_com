@@ -25,7 +25,7 @@ use std::path::Path;
 use std::sync::atomic::AtomicUsize;
 
 use com_api_concept::{
-    Builder, BuilderT, BuilderT2, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier,
+    Builder,  ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier,
     Interface, ProducerBuilder, Reloc, Result, Runtime, RuntimeBuilder, SampleContainer,
     ServiceDiscovery, Subscriber, Subscription,
 };
@@ -332,8 +332,8 @@ impl<I> SampleConsumerDiscovery<I> {
 impl<I: Interface<RuntimeType = MockRuntimeImpl>> ConsumerBuilder<I, MockRuntimeImpl>
     for SampleConsumerBuilder
 {
-    fn get_builder(&self) -> I::ConsumerBuilderType {
-        I::ConsumerBuilderType::new(self)
+    fn build(self) -> Result<I::ConsumerType> {
+        I::ConsumerType::try_from(self)
     }
 }
 
@@ -367,8 +367,8 @@ impl SampleProducerBuilder {
 impl<I: Interface<RuntimeType = MockRuntimeImpl> + std::fmt::Debug>
     ProducerBuilder<I, MockRuntimeImpl, I::ProducerType> for SampleProducerBuilder
 {
-    fn get_builder(&self) -> I::ProducerBuilderType {
-        I::ProducerBuilderType::new(self)
+    fn build(self) -> Result<I::ProducerType> {
+        I::ProducerType::try_from(self)
     }
 }
 
@@ -400,10 +400,6 @@ pub struct RuntimeBuilderImpl {}
 impl Builder<MockRuntimeImpl> for RuntimeBuilderImpl {
     fn build(self) -> Result<MockRuntimeImpl> {
         Ok(MockRuntimeImpl {})
-    }
-
-    fn new() -> Self {
-        todo!()
     }
 }
 

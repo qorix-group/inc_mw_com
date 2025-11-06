@@ -42,8 +42,6 @@ impl Interface for VehicleInterface {
 
     type RuntimeType = MockRuntimeImpl;
 
-    type ConsumerBuilderType = SampleConsumerBuilder;
-    type ProducerBuilderType = SampleProducerBuilder;
 }
 
 pub struct VehicleProducer {}
@@ -78,22 +76,20 @@ pub struct VehicleConsumer {
 
 impl Consumer for VehicleConsumer {}
 
-impl BuilderT<VehicleConsumer, MockRuntimeImpl> for SampleConsumerBuilder {
-    fn build(self) -> Result<VehicleConsumer> {
-        todo!("SampleConsumerBuilder::build for VehicleConsumer")
-    }
 
-    fn new(i: &SampleConsumerBuilder) -> Self {
-        todo!("SampleConsumerBuilder::new for VehicleConsumer")
+// HERE: Now generated code has access to very specific impl details so it cam
+// easilly build itself from internals
+impl TryFrom<SampleConsumerBuilder> for VehicleConsumer {
+    type Error = com_api::Error;
+    fn try_from(_builder: SampleConsumerBuilder) -> Result<Self> {
+         todo!("VehicleConsumer::try_from")
     }
 }
 
-impl BuilderT2<VehicleProducer, MockRuntimeImpl> for SampleProducerBuilder {
-    fn build(self) -> Result<VehicleProducer> {
-        todo!("SampleProducerBuilder::build for VehicleProducer")
-    }
-
-    fn new(i: &SampleProducerBuilder) -> Self {
-        todo!("SampleProducerBuilder::new for VehicleProducer")
+impl TryFrom<SampleProducerBuilder> for VehicleProducer {
+    type Error = com_api::Error;
+    fn try_from(_builder: SampleProducerBuilder) -> Result<Self> {
+         todo!("VehicleProducer::try_from")
     }
 }
+
