@@ -10,4 +10,4 @@ iceoryx = ["iceoryx2"]
 lola = []
 
 [dependencies]
-iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", rev = "cfa8b10fe1e723b22dc5abd97a155b6a992fe8e6", optional = true }
+iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git", rev = "d3d1c9a727d3dc405733081923be5dba8213d6d8", optional = true }
