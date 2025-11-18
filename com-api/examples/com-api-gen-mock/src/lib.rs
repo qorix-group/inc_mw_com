@@ -21,9 +21,9 @@
 //! interface Another {}
 //!
 //! ```
-
+#![allow(unused_imports)]
 use com_api::*;
-use com_api_runtime_mock::{MockRuntimeImpl, SampleConsumerBuilder, SampleProducerBuilder};
+use com_api_runtime_mock::{MockRuntimeImpl, Sample, SampleConsumerBuilder, SampleProducerBuilder};
 
 #[derive(Debug)]
 pub struct Tire {}
@@ -32,14 +32,16 @@ unsafe impl Reloc for Tire {}
 pub struct Exhaust {}
 unsafe impl Reloc for Exhaust {}
 
+#[derive(Debug)]
 pub struct VehicleInterface {}
 
 /// Generic
-impl Interface for VehicleInterface {}
+impl Interface for VehicleInterface {
+    type ProducerType = VehicleProducer;
+    type ConsumerType = VehicleConsumer;
 
-pub struct AnotherInterface {}
-
-impl Interface for AnotherInterface {}
+    type RuntimeType = MockRuntimeImpl;
+}
 
 pub struct VehicleProducer {}
 
@@ -66,17 +68,6 @@ impl OfferedProducer for VehicleOfferedProducer {
     }
 }
 
-impl Builder<VehicleProducer> for SampleProducerBuilder<VehicleInterface> {
-    fn build(self) -> com_api::Result<VehicleProducer> {
-        todo!()
-    }
-}
-
-impl ProducerBuilder<VehicleInterface, MockRuntimeImpl, VehicleProducer>
-    for SampleProducerBuilder<VehicleInterface>
-{
-}
-
 pub struct VehicleConsumer {
     pub left_tire: com_api_runtime_mock::SubscribableImpl<Tire>,
     pub exhaust: com_api_runtime_mock::SubscribableImpl<Exhaust>,
@@ -84,10 +75,16 @@ pub struct VehicleConsumer {
 
 impl Consumer for VehicleConsumer {}
 
-impl ConsumerBuilder<VehicleInterface, MockRuntimeImpl> for SampleConsumerBuilder<VehicleInterface> {}
+impl TryFrom<SampleConsumerBuilder> for VehicleConsumer {
+    type Error = com_api::Error;
+    fn try_from(_builder: SampleConsumerBuilder) -> Result<Self> {
+        todo!("VehicleConsumer::try_from")
+    }
+}
 
-impl Builder<VehicleConsumer> for SampleConsumerBuilder<VehicleInterface> {
-    fn build(self) -> com_api::Result<VehicleConsumer> {
-        todo!()
+impl TryFrom<SampleProducerBuilder> for VehicleProducer {
+    type Error = com_api::Error;
+    fn try_from(_builder: SampleProducerBuilder) -> Result<Self> {
+        todo!("VehicleProducer::try_from")
     }
 }

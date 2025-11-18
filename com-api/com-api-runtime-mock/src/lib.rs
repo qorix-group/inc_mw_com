@@ -25,34 +25,32 @@ use std::path::Path;
 use std::sync::atomic::AtomicUsize;
 
 use com_api_concept::{
-    Builder, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface, Reloc, Runtime,
-    SampleContainer, ServiceDiscovery, Subscriber, Subscription,
+    Builder, ConsumerBuilder, ConsumerDescriptor, InstanceSpecifier, Interface, ProducerBuilder,
+    Reloc, Result, Runtime, RuntimeBuilder, SampleContainer, ServiceDiscovery, Subscriber,
+    Subscription,
 };
 
 pub struct MockRuntimeImpl {}
 
 impl Runtime for MockRuntimeImpl {
     type Sample<'a, T: Reloc + Send + 'a + std::fmt::Debug> = Sample<'a, T>;
-}
 
-impl MockRuntimeImpl {
-    // TODO: Any chance that these can be moved to a trait so that this becomes more testable?
-    // If yes, this trait is certainly located here since
-    pub fn find_service<I: Interface>(
+    fn find_service<I: Interface<RuntimeType = Self>>(
         &self,
         _instance_specifier: InstanceSpecifier,
-    ) -> SampleConsumerDiscovery<I> {
-        SampleConsumerDiscovery {
-            _interface: PhantomData,
-        }
+    ) -> impl ServiceDiscovery<I, Self> {
+        SampleConsumerDiscovery::new(self, _instance_specifier)
     }
 
-    pub fn producer_builder<I: Interface>(
+    fn producer_builder<I: Interface<RuntimeType = Self> + std::fmt::Debug>(
         &self,
         instance_specifier: InstanceSpecifier,
-    ) -> SampleProducerBuilder<I> {
+    ) -> impl ProducerBuilder<I, Self, I::ProducerType> {
         SampleProducerBuilder::new(self, instance_specifier)
     }
+
+    type ConsumerBuilderImpl = SampleConsumerBuilder;
+    type ProducerBuilderImpl = SampleProducerBuilder;
 }
 
 struct MockEvent<T> {
@@ -208,7 +206,7 @@ where
         }
     }
 
-    unsafe fn assume_init(self) -> SampleMut<'a, T> { 
+    unsafe fn assume_init(self) -> SampleMut<'a, T> {
         SampleMut {
             data: unsafe { self.data.assume_init() },
             _lifetime: PhantomData,
@@ -229,7 +227,7 @@ impl<T> Default for SubscribableImpl<T> {
 impl<T: Reloc + Send> Subscriber<T> for SubscribableImpl<T> {
     type Subscription = SubscriberImpl<T>;
 
-    fn subscribe(self, _max_num_samples: usize) -> com_api_concept::Result<Self::Subscription> {
+    fn subscribe(self, _max_num_samples: usize) -> Result<Self::Subscription> {
         Ok(SubscriberImpl::new())
     }
 }
@@ -275,7 +273,7 @@ where
         &'a self,
         _scratch: &'_ mut SampleContainer<Self::Sample<'a>>,
         _max_samples: usize,
-    ) -> com_api_concept::Result<usize> {
+    ) -> Result<usize> {
         todo!()
     }
 
@@ -285,7 +283,7 @@ where
         _scratch: &'_ mut SampleContainer<Self::Sample<'a>>,
         _new_samples: usize,
         _max_samples: usize,
-    ) -> impl Future<Output = com_api_concept::Result<usize>> + Send {
+    ) -> impl Future<Output = Result<usize>> + Send {
         async { todo!() }
     }
 }
@@ -311,7 +309,7 @@ where
         Self { _data: PhantomData }
     }
 
-    pub fn allocate<'a>(&'a self) -> com_api_concept::Result<SampleMaybeUninit<'a, T>> {
+    pub fn allocate<'a>(&'a self) -> Result<SampleMaybeUninit<'a, T>> {
         Ok(SampleMaybeUninit {
             data: MaybeUninit::uninit(),
             _lifetime: PhantomData,
@@ -331,29 +329,46 @@ impl<I> SampleConsumerDiscovery<I> {
     }
 }
 
-impl<I: Interface> ServiceDiscovery<I, MockRuntimeImpl> for SampleConsumerDiscovery<I>
-where
-    SampleConsumerBuilder<I>: ConsumerBuilder<I, MockRuntimeImpl>,
+impl<I: Interface<RuntimeType = MockRuntimeImpl>> ConsumerBuilder<I, MockRuntimeImpl>
+    for SampleConsumerBuilder
 {
-    type ConsumerBuilder = SampleConsumerBuilder<I>;
-    type ServiceEnumerator = Vec<SampleConsumerBuilder<I>>;
-
-    fn get_available_instances(&self) -> com_api_concept::Result<Self::ServiceEnumerator> {
-        Ok(Vec::new())
+    fn build(self) -> Result<I::ConsumerType> {
+        I::ConsumerType::try_from(self)
     }
 }
 
-pub struct SampleProducerBuilder<I: Interface> {
-    instance_specifier: InstanceSpecifier,
-    _interface: PhantomData<I>,
+impl<I: Interface<RuntimeType = MockRuntimeImpl>> ServiceDiscovery<I, MockRuntimeImpl>
+    for SampleConsumerDiscovery<I>
+{
+    type ConsumerBuilder = SampleConsumerBuilder;
+    type ServiceEnumerator = Vec<SampleConsumerBuilder>;
+
+    fn get_available_instances(&self) -> Result<Self::ServiceEnumerator> {
+        let mut v = Vec::new();
+        v.push(SampleConsumerBuilder {
+            instance_specifier: InstanceSpecifier {
+                specifier: "My/Funk/ServiceName".to_string(),
+            },
+        });
+        Ok(v)
+    }
 }
 
-impl<I: Interface> SampleProducerBuilder<I> {
+pub struct SampleProducerBuilder {
+    instance_specifier: InstanceSpecifier,
+}
+
+impl SampleProducerBuilder {
     fn new(_runtime: &MockRuntimeImpl, instance_specifier: InstanceSpecifier) -> Self {
-        Self {
-            instance_specifier,
-            _interface: PhantomData,
-        }
+        Self { instance_specifier }
+    }
+}
+
+impl<I: Interface<RuntimeType = MockRuntimeImpl> + std::fmt::Debug>
+    ProducerBuilder<I, MockRuntimeImpl, I::ProducerType> for SampleProducerBuilder
+{
+    fn build(self) -> Result<I::ProducerType> {
+        I::ProducerType::try_from(self)
     }
 }
 
@@ -369,27 +384,27 @@ impl<I: Interface> Clone for SampleConsumerDescriptor<I> {
     }
 }
 
-pub struct SampleConsumerBuilder<I: Interface> {
-    instance_specifier: InstanceSpecifier,
-    _interface: PhantomData<I>,
+pub struct SampleConsumerBuilder {
+    pub instance_specifier: InstanceSpecifier,
 }
 
-impl<I: Interface> ConsumerDescriptor<MockRuntimeImpl> for SampleConsumerBuilder<I> {
+impl ConsumerDescriptor<MockRuntimeImpl> for SampleConsumerBuilder {
     fn get_instance_id(&self) -> usize {
-        todo!()
+        42
+        //todo!()
     }
 }
 
 pub struct RuntimeBuilderImpl {}
 
 impl Builder<MockRuntimeImpl> for RuntimeBuilderImpl {
-    fn build(self) -> com_api_concept::Result<MockRuntimeImpl> {
+    fn build(self) -> Result<MockRuntimeImpl> {
         Ok(MockRuntimeImpl {})
     }
 }
 
 /// Entry point for the default implementation for the com module of s-core
-impl com_api_concept::RuntimeBuilder<MockRuntimeImpl> for RuntimeBuilderImpl {
+impl RuntimeBuilder<MockRuntimeImpl> for RuntimeBuilderImpl {
     fn load_config(&mut self, _config: &Path) -> &mut Self {
         self
     }
