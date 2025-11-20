@@ -22,6 +22,8 @@
 //!
 //! ```
 
+use iceoryx2::prelude::*;
+
 use com_api::{
     Consumer, Interface, OfferedProducer, Producer, Publisher, Reloc, Runtime, Subscriber,
 };
@@ -29,11 +31,14 @@ use com_api::{
 #[derive(Debug)]
 pub struct Tire {}
 unsafe impl Reloc for Tire {}
+unsafe impl ZeroCopySend for Tire {}
 
 #[derive(Debug)]
 pub struct Exhaust {}
 unsafe impl Reloc for Exhaust {}
+unsafe impl ZeroCopySend for Exhaust {}
 
+#[derive(Debug)]
 pub struct VehicleInterface {}
 
 /// Generic

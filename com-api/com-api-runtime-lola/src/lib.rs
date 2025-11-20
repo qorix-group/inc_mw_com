@@ -45,14 +45,14 @@ pub struct LolaConsumerInfo {
 }
 
 impl Runtime for LolaRuntimeImpl {
-    type ServiceDiscovery<I: Interface> = SampleConsumerDiscovery<I>;
-    type Subscriber<T: Reloc + Send + Debug> = SubscribableImpl<T>;
+    type ServiceDiscovery<I: Interface + Debug> = SampleConsumerDiscovery<I>;
+    type Subscriber<T: Reloc + Send + Debug + 'static> = SubscribableImpl<T>;
     type ProducerBuilder<I: Interface, P: Producer<Self, Interface = I>> = SampleProducerBuilder<I>;
-    type Publisher<T: Reloc + Send + Debug> = Publisher<T>;
+    type Publisher<T: Reloc + Send + Debug + 'static> = Publisher<T>;
     type ProviderInfo = LolaProviderInfo;
     type ConsumerInfo = LolaConsumerInfo;
 
-    fn find_service<I: Interface>(
+    fn find_service<I: Interface + Debug>(
         &self,
         _instance_specifier: FindServiceSpecifier,
     ) -> Self::ServiceDiscovery<I> {

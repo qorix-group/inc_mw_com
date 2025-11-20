@@ -6,6 +6,7 @@ publish = ["common"]
 license = "Apache-2.0"
 
 [dependencies]
+iceoryx2 = { git = "https://github.com/eclipse-iceoryx/iceoryx2.git"}
 com-api-concept = { workspace = true }
 
 [dev-dependencies]

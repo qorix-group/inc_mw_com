@@ -26,6 +26,8 @@ use core::ops::{Deref, DerefMut};
 use core::sync::atomic::AtomicUsize;
 use std::collections::VecDeque;
 use std::path::Path;
+use iceoryx2::prelude::*;
+use std::sync::Arc;
 
 use com_api_concept::{
     Builder, Consumer, ConsumerBuilder, ConsumerDescriptor, FindServiceSpecifier,
@@ -33,34 +35,52 @@ use com_api_concept::{
     ServiceDiscovery, Subscriber, Subscription,
 };
 
-pub struct MockRuntimeImpl {}
+pub struct MockRuntimeImpl {
+    node: Arc<Node<ipc_threadsafe::Service>>,
+}
 
 // Note: ProviderInfo is currently unused but will be utilized
 // with the Producer::offer() method in future implementations.
 #[derive(Clone)]
 pub struct MockProviderInfo {
     instance_specifier: InstanceSpecifier,
+    node: Arc<Node<ipc_threadsafe::Service>>,
 }
 
 #[derive(Clone)]
 pub struct MockConsumerInfo {
     instance_specifier: InstanceSpecifier,
+    node: Arc<Node<ipc_threadsafe::Service>>,
 }
 
 impl Runtime for MockRuntimeImpl {
-    type ServiceDiscovery<I: Interface> = SampleConsumerDiscovery<I>;
-    type Subscriber<T: Reloc + Send + Debug> = SubscribableImpl<T>;
+    type ServiceDiscovery<I: Interface + Debug> = SampleConsumerDiscovery<I>;
+    type Subscriber<T: Reloc + Send + Debug + 'static> = SubscribableImpl<T>;
     type ProducerBuilder<I: Interface, P: Producer<Self, Interface = I>> = SampleProducerBuilder<I>;
-    type Publisher<T: Reloc + Send + Debug> = Publisher<T>;
+    type Publisher<T: Reloc + Send + Debug + 'static> = Publisher<T>;
     type ProviderInfo = MockProviderInfo;
     type ConsumerInfo = MockConsumerInfo;
 
-    fn find_service<I: Interface>(
+    fn find_service<I: Interface + Debug>(
         &self,
         _instance_specifier: FindServiceSpecifier,
     ) -> Self::ServiceDiscovery<I> {
+        let specifier: String;
+        match _instance_specifier {
+            FindServiceSpecifier::Specific(s) => {
+                specifier = s.as_ref().to_string();
+                println!("Finding service for instance specifier: {}", specifier);
+            }
+            FindServiceSpecifier::Any => {
+                specifier = "any".to_string();
+                println!("Finding service for any available instance");
+            }
+        }
+        println!("Creating SampleConsumerDiscovery for specifier: {}", specifier);
         SampleConsumerDiscovery {
+            instance_specifier: InstanceSpecifier::new(specifier.as_str()).unwrap(),
             _interface: PhantomData,
+            node: Arc::clone(&self.node),
         }
     }
 
@@ -80,18 +100,19 @@ struct MockEvent<T> {
 #[derive(Debug)]
 struct MockBinding<'a, T>
 where
-    T: Send,
+    T: Send + Reloc + Debug + ZeroCopySend,
 {
-    data: *mut T,
+    data: iceoryx2::sample::Sample<ipc_threadsafe::Service, T, ()>,
     event: &'a MockEvent<T>,
 }
 
-unsafe impl<'a, T> Send for MockBinding<'a, T> where T: Send {}
+unsafe impl<'a, T> Send for MockBinding<'a, T> where T: Send + Reloc + Debug + ZeroCopySend
+{}
 
 #[derive(Debug)]
 enum SampleBinding<'a, T>
 where
-    T: Send,
+    T: Send + Reloc + Debug + ZeroCopySend,
 {
     Mock(MockBinding<'a, T>),
     Test(Box<T>),
@@ -100,7 +121,7 @@ where
 #[derive(Debug)]
 pub struct Sample<'a, T>
 where
-    T: Reloc + Send,
+    T: Reloc + Send + Debug + ZeroCopySend,
 {
     id: usize,
     inner: SampleBinding<'a, T>,
@@ -110,7 +131,7 @@ static ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 impl<'a, T> From<T> for Sample<'a, T>
 where
-    T: Reloc + Send + Debug,
+    T: Reloc + Send + Debug + ZeroCopySend,
 {
     fn from(value: T) -> Self {
         Self {
@@ -122,34 +143,34 @@ where
 
 impl<'a, T> Deref for Sample<'a, T>
 where
-    T: Reloc + Send,
+    T: Reloc + Send + Debug + ZeroCopySend,
 {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         match &self.inner {
-            SampleBinding::Mock(_mock) => unimplemented!(),
+            SampleBinding::Mock(_mock) => _mock.data.payload(),
             SampleBinding::Test(test) => test.as_ref(),
         }
     }
 }
 
-impl<'a, T> com_api_concept::Sample<T> for Sample<'a, T> where T: Send + Reloc + Debug {}
+impl<'a, T> com_api_concept::Sample<T> for Sample<'a, T> where T: Send + Reloc + Debug + ZeroCopySend {}
 
 impl<'a, T> PartialEq for Sample<'a, T>
 where
-    T: Send + Reloc,
+    T: Send + Reloc + Debug + ZeroCopySend,
 {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl<'a, T> Eq for Sample<'a, T> where T: Send + Reloc {}
+impl<'a, T> Eq for Sample<'a, T> where T: Send + Reloc + Debug + ZeroCopySend {}
 
 impl<'a, T> PartialOrd for Sample<'a, T>
 where
-    T: Send + Reloc,
+    T: Send + Reloc + Debug + ZeroCopySend,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -158,7 +179,7 @@ where
 
 impl<'a, T> Ord for Sample<'a, T>
 where
-    T: Send + Reloc,
+    T: Send + Reloc + Debug + ZeroCopySend,
 {
     fn cmp(&self, other: &Self) -> Ordering {
         self.id.cmp(&other.id)
@@ -168,15 +189,15 @@ where
 #[derive(Debug)]
 pub struct SampleMut<'a, T>
 where
-    T: Reloc,
+    T: Reloc + Debug + ZeroCopySend,
 {
-    data: T,
+    data: iceoryx2::sample_mut::SampleMut<ipc_threadsafe::Service, T, ()>,
     lifetime: PhantomData<&'a T>,
 }
 
 impl<'a, T> com_api_concept::SampleMut<T> for SampleMut<'a, T>
 where
-    T: Reloc + Send + Debug,
+    T: Reloc + Send + Debug + ZeroCopySend,
 {
     type Sample = Sample<'a, T>;
 
@@ -185,13 +206,17 @@ where
     }
 
     fn send(self) -> com_api_concept::Result<()> {
-        todo!()
+        let return_value = self.data.send();
+        match return_value {
+            Err(e) => panic!("Failed to send data {e}"),
+            Ok(_subscriber_ok) => Ok(()),
+        }
     }
 }
 
 impl<'a, T> Deref for SampleMut<'a, T>
 where
-    T: Reloc,
+    T: Reloc + Debug + ZeroCopySend,
 {
     type Target = T;
 
@@ -202,31 +227,40 @@ where
 
 impl<'a, T> DerefMut for SampleMut<'a, T>
 where
-    T: Reloc,
+    T: Reloc + Debug + ZeroCopySend,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
     }
 }
 
-#[derive(Debug)]
+
 pub struct SampleMaybeUninit<'a, T>
 where
-    T: Reloc + Send,
+    T: Reloc + Send + ZeroCopySend,
 {
-    data: MaybeUninit<T>,
+    data: iceoryx2::sample_mut_uninit::SampleMutUninit<ipc_threadsafe::Service, MaybeUninit<T>, ()>,
     lifetime: PhantomData<&'a T>,
+}
+
+impl<'a, T> Debug for SampleMaybeUninit<'a, T>
+where
+    T: Reloc + Send + ZeroCopySend,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "SampleMaybeUninit")
+    }
 }
 
 impl<'a, T> com_api_concept::SampleMaybeUninit<T> for SampleMaybeUninit<'a, T>
 where
-    T: Reloc + Send + Debug,
+    T: Reloc + Send + Debug + ZeroCopySend,
 {
     type SampleMut = SampleMut<'a, T>;
 
     fn write(self, val: T) -> SampleMut<'a, T> {
         SampleMut {
-            data: val,
+            data: self.data.write_payload(val),
             lifetime: PhantomData,
         }
     }
@@ -244,55 +278,96 @@ where
     T: Reloc + Send + Debug,
 {
     fn as_mut(&mut self) -> &mut core::mem::MaybeUninit<T> {
-        &mut self.data
+        todo!()
+        //&mut self.data
     }
 }
 
-pub struct SubscribableImpl<T> {
+pub struct SubscribableImpl<T: Debug + ZeroCopySend> {
     identifier: String,
     instance_info: Option<MockConsumerInfo>,
     data: PhantomData<T>,
+    service: Option<Arc<
+        iceoryx2::service::port_factory::publish_subscribe::PortFactory<
+            ipc_threadsafe::Service,
+            T,
+            (),
+        >,
+    >>,
 }
 
-impl<T> Default for SubscribableImpl<T> {
+impl<T: Debug + ZeroCopySend> Default for SubscribableImpl<T> {
     fn default() -> Self {
         Self {
             identifier: String::new(),
             instance_info: None,
             data: PhantomData,
+            service: None,
         }
     }
 }
 
-impl<T: Reloc + Send + Debug> Subscriber<T, MockRuntimeImpl> for SubscribableImpl<T> {
+impl<T: Reloc + Send + Debug + ZeroCopySend + 'static> Subscriber<T, MockRuntimeImpl>
+    for SubscribableImpl<T>
+{
     type Subscription = SubscriberImpl<T>;
     fn new(identifier: &str, instance_info: MockConsumerInfo) -> com_api_concept::Result<Self> {
+        let specifier = instance_info.instance_specifier.as_ref();
+        let service_name = format!("{}/{}", specifier, identifier);
+        println!("Creating subscriber for service name: {}", service_name);
+        let service = instance_info
+            .node
+            .service_builder(&ServiceName::new(service_name.as_str()).unwrap())
+            .publish_subscribe::<T>()
+            .open()
+            .unwrap();
         Ok(Self {
             identifier: identifier.to_string(),
             instance_info: Some(instance_info),
             data: PhantomData,
+            service: Some(Arc::new(service)),
         })
     }
     fn subscribe(&self, _max_num_samples: usize) -> com_api_concept::Result<Self::Subscription> {
-        Ok(SubscriberImpl::new())
+        println!(
+            "Subscribing to service: {}",
+            self.identifier.as_str()
+        );
+        match &self.service {
+            None => return Err(com_api_concept::Error::SubscribeFailed),
+            Some(service) => return Ok(SubscriberImpl::new(Arc::clone(service))),
+        }
     }
 }
 
-#[derive(Default)]
-pub struct SubscriberImpl<T>
+pub struct SubscriberImpl<T: Debug + ZeroCopySend + 'static>
 where
-    T: Reloc + Send,
+    T: Reloc + Send + Debug + ZeroCopySend,
 {
     data: VecDeque<T>,
+    subscriber: iceoryx2::port::subscriber::Subscriber<ipc_threadsafe::Service, T, ()>,
 }
 
 impl<T> SubscriberImpl<T>
 where
-    T: Reloc + Send,
+    T: Reloc + Send + Debug + ZeroCopySend,
 {
-    pub fn new() -> Self {
-        Self {
-            data: Default::default(),
+    pub fn new(
+        service: Arc<iceoryx2::service::port_factory::publish_subscribe::PortFactory<
+            ipc_threadsafe::Service,
+            T,
+            (),
+        >>,
+    ) -> Self {
+        let subscriber = service.subscriber_builder().create();
+        match subscriber {
+            Err(e) => panic!("Failed to create subscriber: {e}"),
+            Ok(subscriber_ok) => {
+                return Self {
+                    data: Default::default(),
+                    subscriber: subscriber_ok,
+                };
+            }
         }
     }
 
@@ -303,7 +378,7 @@ where
 
 impl<T> Subscription<T, MockRuntimeImpl> for SubscriberImpl<T>
 where
-    T: Reloc + Send + Debug,
+    T: Reloc + Send + Debug + ZeroCopySend,
 {
     type Subscriber = SubscribableImpl<T>;
     type Sample<'a>
@@ -320,7 +395,23 @@ where
         _scratch: &'_ mut SampleContainer<Self::Sample<'a>>,
         _max_samples: usize,
     ) -> com_api_concept::Result<usize> {
-        todo!()
+        let _result = self.subscriber.receive();
+        match _result {
+            Ok(option) => match option {
+                Some(sample) => {
+                    let _res = _scratch.push_back(Sample {
+                        id: ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+                        inner: SampleBinding::Mock(MockBinding {
+                            data: sample,
+                            event: &MockEvent { event: PhantomData },
+                        }),
+                    });
+                    return Ok(1);
+                }
+                None => return Ok(0),
+            },
+            Err(_e) => Err(com_api_concept::Error::Fail),
+        }
     }
 
     #[allow(clippy::manual_async_fn)]
@@ -334,27 +425,21 @@ where
     }
 }
 
-pub struct Publisher<T> {
+pub struct Publisher<T: Debug + ZeroCopySend + 'static> {
     _data: PhantomData<T>,
+    publisher: iceoryx2::port::publisher::Publisher<ipc_threadsafe::Service, T, ()>,
 }
 
-impl<T> Default for Publisher<T>
-where
-    T: Reloc + Send,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// impl<T: Debug + ZeroCopySend> Default for Publisher<T>
+// where
+//     T: Reloc + Send,
+// {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
 
-impl<T> Publisher<T>
-where
-    T: Reloc + Send,
-{
-    pub fn new() -> Self {
-        Self { _data: PhantomData }
-    }
-}
+impl<T: Debug + ZeroCopySend> Publisher<T> where T: Reloc + Send {}
 
 impl<T> com_api_concept::Publisher<T, MockRuntimeImpl> for Publisher<T>
 where
@@ -365,26 +450,51 @@ where
     where
         Self: 'a;
 
-    fn new(_identifier: &str, _instance_info: MockProviderInfo) -> com_api_concept::Result<Self> {
-        Ok(Self { _data: PhantomData })
+    fn new(identifier: &str, instance_info: MockProviderInfo) -> com_api_concept::Result<Self>  {
+        let specifier = instance_info.instance_specifier.as_ref();
+        let service_name = format!("{}/{}", specifier, identifier);
+        println!("Creating publisher for service name: {}", service_name);
+        let service = instance_info
+            .node
+            .service_builder(&ServiceName::new(service_name.as_str()).unwrap())
+            .publish_subscribe::<T>()
+            .create()
+            .unwrap()
+            .publisher_builder()
+            .create()
+            .unwrap();
+        Ok(Self {
+            _data: PhantomData,
+            publisher: service,
+        })
     }
 
     fn allocate<'a>(&'a self) -> com_api_concept::Result<Self::SampleMaybeUninit<'a>> {
-        Ok(SampleMaybeUninit {
-            data: MaybeUninit::uninit(),
-            lifetime: PhantomData,
-        })
+        let data_result = self.publisher.loan_uninit();
+        match data_result {
+            Err(_e) => return Err(com_api_concept::Error::AllocateFailed),
+            Ok(data_result_ok) => {
+                return Ok(SampleMaybeUninit {
+                    data: data_result_ok,
+                    lifetime: PhantomData,
+                });
+            }
+        }
     }
 }
 
 pub struct SampleConsumerDiscovery<I> {
+    pub instance_specifier: InstanceSpecifier,
     _interface: PhantomData<I>,
+    node: Arc<Node<ipc_threadsafe::Service>>,
 }
 
 impl<I> SampleConsumerDiscovery<I> {
     fn new(_runtime: &MockRuntimeImpl, _instance_specifier: InstanceSpecifier) -> Self {
         Self {
+            instance_specifier: _instance_specifier,
             _interface: PhantomData,
+            node: Arc::clone(&_runtime.node),
         }
     }
 }
@@ -397,7 +507,31 @@ where
     type ServiceEnumerator = Vec<SampleConsumerBuilder<I>>;
 
     fn get_available_instances(&self) -> com_api_concept::Result<Self::ServiceEnumerator> {
-        Ok(Vec::new())
+        let mut result: Vec<SampleConsumerBuilder<I>> = Vec::new();
+        match self.instance_specifier.as_ref() {
+            "any" => {
+                // Functionality in progress
+                let instance_specifier =
+                    InstanceSpecifier::new("My/Funk/ServiceName").unwrap();
+                result.push(SampleConsumerBuilder {
+                    instance_specifier: instance_specifier,
+                    _interface: PhantomData,
+                    node: Arc::clone(&self.node),
+                });
+                Ok(result)
+            }
+            _ => {
+                let instance_specifier =
+                    InstanceSpecifier::new(self.instance_specifier.as_ref().to_string()).unwrap();
+                result.push(SampleConsumerBuilder {
+                    instance_specifier: instance_specifier,
+                    _interface: PhantomData,
+                    node: Arc::clone(&self.node),
+                });
+                Ok(result)
+            }
+        }
+        
     }
 
     #[allow(clippy::manual_async_fn)]
@@ -411,6 +545,7 @@ where
 pub struct SampleProducerBuilder<I: Interface> {
     instance_specifier: InstanceSpecifier,
     _interface: PhantomData<I>,
+    pub node: Arc<Node<ipc_threadsafe::Service>>,
 }
 
 impl<I: Interface> SampleProducerBuilder<I> {
@@ -418,6 +553,7 @@ impl<I: Interface> SampleProducerBuilder<I> {
         Self {
             instance_specifier,
             _interface: PhantomData,
+            node: Arc::clone(&_runtime.node),
         }
     }
 }
@@ -431,7 +567,11 @@ impl<I: Interface, P: Producer<MockRuntimeImpl, Interface = I>> Builder<P>
     for SampleProducerBuilder<I>
 {
     fn build(self) -> Result<P> {
-        todo!()
+        let instance_info = MockProviderInfo {
+            instance_specifier: self.instance_specifier.clone(),
+            node: Arc::clone(&self.node),
+        };
+        Ok(P::new(instance_info).unwrap())
     }
 }
 
@@ -450,20 +590,28 @@ impl<I: Interface> Clone for SampleConsumerDescriptor<I> {
 pub struct SampleConsumerBuilder<I: Interface> {
     instance_specifier: InstanceSpecifier,
     _interface: PhantomData<I>,
+    pub node: Arc<Node<ipc_threadsafe::Service>>,
 }
 
 impl<I: Interface> ConsumerDescriptor<MockRuntimeImpl> for SampleConsumerBuilder<I> {
     fn get_instance_identifier(&self) -> String {
-        todo!()
+        println!("Getting instance identifier: {}", self.instance_specifier.as_ref().to_string());
+        return self.instance_specifier.as_ref().to_string();
     }
 }
 
-impl<I: Interface> ConsumerBuilder<I, MockRuntimeImpl> for SampleConsumerBuilder<I> {}
+impl<I: Interface + Debug> ConsumerBuilder<I, MockRuntimeImpl>
+    for SampleConsumerBuilder<I>
+{
+}
 
-impl<I: Interface> Builder<I::Consumer<MockRuntimeImpl>> for SampleConsumerBuilder<I> {
+impl<I: Interface + Debug> Builder<I::Consumer<MockRuntimeImpl>>
+    for SampleConsumerBuilder<I>
+{
     fn build(self) -> com_api_concept::Result<I::Consumer<MockRuntimeImpl>> {
         let instance_info = MockConsumerInfo {
             instance_specifier: self.instance_specifier.clone(),
+            node: Arc::clone(&self.node),
         };
 
         Ok(Consumer::new(instance_info)?)
@@ -474,7 +622,11 @@ pub struct RuntimeBuilderImpl {}
 
 impl Builder<MockRuntimeImpl> for RuntimeBuilderImpl {
     fn build(self) -> com_api_concept::Result<MockRuntimeImpl> {
-        Ok(MockRuntimeImpl {})
+        let node = NodeBuilder::new().create::<ipc_threadsafe::Service>();
+        match node {
+            Ok(n) => Ok(MockRuntimeImpl { node: Arc::new(n) }),
+            Err(_e) => Err(com_api_concept::Error::Fail),
+        }
     }
 }
 
@@ -495,58 +647,5 @@ impl RuntimeBuilderImpl {
     /// Creates a new instance of the default implementation for the com module of s-core
     pub fn new() -> Self {
         Self {}
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use com_api_concept::{Publisher, SampleContainer, SampleMaybeUninit, SampleMut, Subscription};
-
-    #[test]
-    fn receive_stuff() {
-        let test_subscriber = super::SubscriberImpl::<u32>::new();
-        for _ in 0..10 {
-            let mut sample_buf = SampleContainer::new();
-            let receive_result = test_subscriber.try_receive(&mut sample_buf, 1);
-            match receive_result {
-                Ok(0) => panic!("No sample received"),
-                Ok(x) => {
-                    println!(
-                        "{} samples received: sample[0] = {}",
-                        x,
-                        *sample_buf.front().unwrap()
-                    )
-                }
-                Err(e) => panic!("{:?}", e),
-            }
-        }
-    }
-
-    #[test]
-    fn receive_async_stuff() {
-        let test_subscriber = super::SubscriberImpl::<u32>::new();
-        // block on an asynchronous reception of data from test_subscriber
-        futures::executor::block_on(async {
-            let mut sample_buf = SampleContainer::new();
-            match test_subscriber.receive(&mut sample_buf, 1, 1).await {
-                Ok(0) => panic!("No sample received"),
-                Ok(x) => {
-                    println!(
-                        "{} samples received: sample[0] = {}",
-                        x,
-                        *sample_buf.front().unwrap()
-                    )
-                }
-                Err(e) => panic!("{:?}", e),
-            }
-        })
-    }
-
-    #[test]
-    fn send_stuff() {
-        let test_publisher = super::Publisher::<u32>::new();
-        let sample = test_publisher.allocate().expect("Couldn't allocate sample");
-        let sample = sample.write(42);
-        sample.send().expect("Send failed for sample");
     }
 }

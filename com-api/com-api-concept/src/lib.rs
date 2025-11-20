@@ -48,7 +48,8 @@ use core::fmt::Debug;
 use core::future::Future;
 use core::ops::{Deref, DerefMut};
 pub mod reloc;
-pub use reloc::Reloc;
+use iceoryx2::prelude::*;
+
 use std::collections::VecDeque;
 use std::path::Path;
 
@@ -76,14 +77,14 @@ pub trait Builder<Output> {
 // * ProviderInfo - Information about a producer instance required to pass to different traits/types/methods
 // * ConsumerInfo - Information about a consumer instance required to pass to different traits/types/methods
 pub trait Runtime {
-    type ServiceDiscovery<I: Interface>: ServiceDiscovery<I, Self>;
-    type Subscriber<T: Reloc + Send + Debug>: Subscriber<T, Self>;
+    type ServiceDiscovery<I: Interface + Debug>: ServiceDiscovery<I, Self>;
+    type Subscriber<T: Reloc + Send + Debug + 'static>: Subscriber<T, Self>;
     type ProducerBuilder<I: Interface, P: Producer<Self, Interface = I>>: ProducerBuilder<I, P, Self>;
-    type Publisher<T: Reloc + Send + Debug>: Publisher<T, Self>;
+    type Publisher<T: Reloc + Send + Debug + 'static>: Publisher<T, Self>;
     type ProviderInfo: Send + Clone;
     type ConsumerInfo: Send + Clone;
 
-    fn find_service<I: Interface>(
+    fn find_service<I: Interface + Debug>(
         &self,
         _instance_specifier: FindServiceSpecifier,
     ) -> Self::ServiceDiscovery<I>;
@@ -174,6 +175,7 @@ pub enum FindServiceSpecifier {
 ///
 /// Since it is yet to be proven whether this trait can be implemented safely (assumption is: no) it
 /// is unsafe for now. The expectation is that very few users ever need to implement this manually.
+pub unsafe trait Reloc: ZeroCopySend {}
 
 /// A `Sample` provides a reference to a memory buffer of an event with immutable value.
 ///
