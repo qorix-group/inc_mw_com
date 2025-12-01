@@ -46,7 +46,7 @@ impl<R: Runtime> VehicleMonitor<R> {
 
     pub fn write_tire_data(&self, tire: Tire) -> Result<()> {
         let uninit_sample = self.producer.left_tire.allocate()?;
-        let sample = uninit_sample.write(tire);
+        let sample = uninit_sample.write_default();
         sample.send()?;
         Ok(())
     }
@@ -83,7 +83,7 @@ fn run_with_runtime<R: Runtime>(name: &str, runtime: &R) {
     let monitor = VehicleMonitor::new(consumer, producer);
 
     for _ in 0..5 {
-        monitor.write_tire_data(Tire {}).unwrap();
+        monitor.write_tire_data(Tire::default()).unwrap();
         let tire_data = monitor.read_tire_data().unwrap();
         println!("{}", tire_data);
     }
